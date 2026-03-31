@@ -1,6 +1,10 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { Nav, ScoreRing, DnaTags, StatsBar, WatchGrid } from "@/components";
+import { Nav } from "@/components/nav";
+import { ScoreRing } from "@/components/score-ring";
+import { DnaTags } from "@/components/dna-tags";
+import { StatsBar } from "@/components/stats-bar";
+import { WatchGrid } from "@/components/watch-grid";
 
 // -- Hardcoded profile data (Phase 1) ----------------------------------
 
