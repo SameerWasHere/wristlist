@@ -78,12 +78,16 @@ export default async function DashboardPage() {
 
   const db = getDb();
 
-  // Get user
+  // Get user — redirect to setup if no username yet
   const [user] = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.clerkId, clerkId))
     .limit(1);
+
+  if (!user) {
+    redirect("/setup");
+  }
 
   // Fetch collection and wishlist
   const collectionRows = user

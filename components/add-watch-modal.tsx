@@ -124,6 +124,15 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
           setSaving(false);
           return;
         }
+        if (res.status === 403) {
+          // User needs to set up username first
+          const data = await res.json();
+          if (data.redirect) {
+            onClose();
+            window.location.href = data.redirect;
+            return;
+          }
+        }
         if (!res.ok) {
           setToast("Something went wrong. Please try again.");
           setTimeout(() => setToast(null), 3000);

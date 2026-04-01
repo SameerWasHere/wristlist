@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
@@ -92,23 +92,8 @@ export async function POST(request: NextRequest) {
     .limit(1);
 
   if (!user) {
-    // Auto-create user on first watch add
-    const clerkUser = await currentUser();
-    const username = clerkUser?.username || clerkUser?.firstName?.toLowerCase() || `user-${clerkId.slice(-6)}`;
-    [user] = await db
-      .insert(schema.users)
-      .values({
-        clerkId,
-        username,
-        displayName: clerkUser?.fullName || username,
-      })
-      .onConflictDoNothing()
-      .returning();
-
-    // If conflict (race condition), fetch the existing user
-    if (!user) {
-      [user] = await db.select().from(schema.users).where(eq(schema.users.clerkId, clerkId)).limit(1);
-    }
+    // User needs to pick a username first
+    return NextResponse.json({ error: "setup_required", redirect: "/setup" }, { status: 403 });
   }
 
   // Check if already in collection
