@@ -19,14 +19,7 @@ export async function GET(request: NextRequest) {
     const pattern = `%${q}%`;
 
     const rows = await db
-      .select({
-        brand: schema.watchReferences.brand,
-        model: schema.watchReferences.model,
-        reference: schema.watchReferences.reference,
-        category: schema.watchReferences.category,
-        movement: schema.watchReferences.movement,
-        sizeMm: schema.watchReferences.sizeMm,
-      })
+      .select()
       .from(schema.watchReferences)
       .where(
         or(
