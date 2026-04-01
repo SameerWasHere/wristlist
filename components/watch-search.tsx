@@ -17,88 +17,10 @@ interface SearchResult {
   braceletType?: string;
   material?: string;
   color?: string;
+  imageUrl?: string | null;
 }
 
-const POPULAR_WATCHES: SearchResult[] = [
-  {
-    brand: "Rolex",
-    model: "Submariner Date",
-    reference: "126610LN",
-    category: "diver",
-    movement: "automatic",
-    sizeMm: 41,
-    origin: "Swiss",
-    crystal: "sapphire",
-    braceletType: "steel bracelet",
-    material: "stainless steel",
-    color: "black",
-  },
-  {
-    brand: "Omega",
-    model: "Speedmaster Moonwatch",
-    reference: "310.30.42.50.01.001",
-    category: "chronograph",
-    movement: "manual wind",
-    sizeMm: 42,
-    origin: "Swiss",
-    crystal: "hesalite",
-    braceletType: "steel bracelet",
-    material: "stainless steel",
-    color: "black",
-  },
-  {
-    brand: "Tudor",
-    model: "Black Bay 58",
-    reference: "M79030N-0001",
-    category: "diver",
-    movement: "automatic",
-    sizeMm: 39,
-    origin: "Swiss",
-    crystal: "sapphire",
-    braceletType: "steel bracelet",
-    material: "stainless steel",
-    color: "black",
-  },
-  {
-    brand: "Cartier",
-    model: "Tank Must",
-    reference: "WSTA0065",
-    category: "dress",
-    movement: "quartz",
-    sizeMm: 33.7,
-    origin: "Swiss",
-    crystal: "sapphire",
-    braceletType: "leather strap",
-    material: "stainless steel",
-    color: "white",
-  },
-  {
-    brand: "Grand Seiko",
-    model: "Shunbun",
-    reference: "SBGA413",
-    category: "dress",
-    movement: "automatic",
-    sizeMm: 40,
-    origin: "Japanese",
-    crystal: "sapphire",
-    braceletType: "leather strap",
-    material: "stainless steel",
-    color: "white",
-  },
-  {
-    brand: "Tissot",
-    model: "PRX Powermatic 80",
-    reference: "T137.407.11.041.00",
-    category: "dress",
-    movement: "automatic",
-    sizeMm: 40,
-    origin: "Swiss",
-    crystal: "sapphire",
-    braceletType: "steel bracelet",
-    material: "stainless steel",
-    color: "blue",
-  },
-];
+// Popular watches fetched from DB on mount (no more hardcoded data)
 
 interface WatchSearchProps {
   onAdd?: (watch: SearchResult) => void;
@@ -108,12 +30,21 @@ interface WatchSearchProps {
 export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [popularWatches, setPopularWatches] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalWatch, setModalWatch] = useState<WatchData | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch popular watches from DB on mount
+  useEffect(() => {
+    fetch("/api/watches/search?popular=true")
+      .then((res) => res.json())
+      .then((data) => setPopularWatches(data.results ?? []))
+      .catch(() => {});
+  }, []);
 
   const search = useCallback(async (q: string) => {
     if (q.length < 2) {
@@ -249,7 +180,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
           Browse Popular Watches
         </p>
         <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
-          {POPULAR_WATCHES.map((watch, i) => {
+          {popularWatches.map((watch, i) => {
             const initial = watch.brand.charAt(0).toUpperCase();
             return (
               <div key={watch.reference}>
@@ -258,10 +189,12 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                 )}
                 <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
                   {/* Thumb */}
-                  <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0">
-                    <span className="text-white/30 text-[15px] font-bold">
-                      {initial}
-                    </span>
+                  <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {watch.imageUrl ? (
+                      <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <span className="text-white/30 text-[15px] font-bold">{initial}</span>
+                    )}
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
