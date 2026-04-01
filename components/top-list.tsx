@@ -5,6 +5,7 @@ interface TopListItem {
   count: number;
   brand: string;
   initial: string;
+  imageUrl?: string | null;
 }
 
 interface TopListProps {
@@ -41,8 +42,12 @@ export function TopList({ title, subtitle, items }: TopListProps) {
               </span>
 
               {/* Thumb */}
-              <div className="w-9 h-9 rounded-[9px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0">
-                <span className="text-white/30 text-[13px] font-bold">{item.initial}</span>
+              <div className="w-9 h-9 rounded-[9px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain p-0.5" />
+                ) : (
+                  <span className="text-white/30 text-[13px] font-bold">{item.initial}</span>
+                )}
               </div>
 
               {/* Name + detail */}

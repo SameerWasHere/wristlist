@@ -3,22 +3,45 @@ import { TopList } from "@/components/top-list";
 import { CollectorCard } from "@/components/collector-card";
 import { CtaBanner } from "@/components/cta-banner";
 import { HeroSection } from "./hero-section";
+import { getDb, schema } from "@/lib/db";
 
-const mostCollected = [
-  { rank: 1, name: "Rolex Submariner Date", detail: "126610LN · Diver · 41mm", count: 4823, brand: "Rolex", initial: "R" },
-  { rank: 2, name: "Omega Speedmaster Moonwatch", detail: "310.30.42.50.01.001 · Chronograph · 42mm", count: 3941, brand: "Omega", initial: "O" },
-  { rank: 3, name: "Tudor Black Bay 58", detail: "M79030N-0001 · Diver · 39mm", count: 2817, brand: "Tudor", initial: "T" },
-  { rank: 4, name: "Seiko Prospex Alpinist", detail: "SPB121 · Field · 39.5mm", count: 2204, brand: "Seiko", initial: "S" },
-  { rank: 5, name: "Cartier Tank Must", detail: "WSTA0065 · Dress · 33.7mm", count: 1956, brand: "Cartier", initial: "C" },
-];
+async function getTopLists() {
+  try {
+    const db = getDb();
+    const allWatches = await db.select().from(schema.watchReferences).limit(19);
 
-const mostWishlisted = [
-  { rank: 1, name: "Grand Seiko Shunbun", detail: "SBGA413 · Dress · 40mm", count: 3102, brand: "Grand Seiko", initial: "G" },
-  { rank: 2, name: "Omega Seamaster 300M", detail: "210.30.42.20.03.001 · Diver · 42mm", count: 2670, brand: "Omega", initial: "O" },
-  { rank: 3, name: "Nomos Tangente 2date", detail: "135 · Dress · 37.5mm", count: 1843, brand: "Nomos", initial: "N" },
-  { rank: 4, name: "Tissot PRX Powermatic 80", detail: "T137.407.11.041.00 · Dress · 40mm", count: 1521, brand: "Tissot", initial: "T" },
-  { rank: 5, name: "Sinn 556 I B", detail: "556.010 · Field · 38.5mm", count: 1389, brand: "Sinn", initial: "S" },
-];
+    // Split into two lists — first 5 as "most collected", next 5 as "most wishlisted"
+    // Fake counts for now (will be real when we have user data to aggregate)
+    const fakeCounts = [4823, 3941, 2817, 2204, 1956, 3102, 2670, 1843, 1521, 1389];
+
+    const mostCollected = allWatches.slice(0, 5).map((w, i) => ({
+      rank: i + 1,
+      name: `${w.brand} ${w.model}`,
+      detail: [w.reference, w.category, w.sizeMm ? `${w.sizeMm}mm` : null].filter(Boolean).join(" · "),
+      count: fakeCounts[i],
+      brand: w.brand,
+      initial: w.brand.charAt(0),
+      imageUrl: w.imageUrl,
+    }));
+
+    const mostWishlisted = allWatches.slice(5, 10).map((w, i) => ({
+      rank: i + 1,
+      name: `${w.brand} ${w.model}`,
+      detail: [w.reference, w.category, w.sizeMm ? `${w.sizeMm}mm` : null].filter(Boolean).join(" · "),
+      count: fakeCounts[i + 5],
+      brand: w.brand,
+      initial: w.brand.charAt(0),
+      imageUrl: w.imageUrl,
+    }));
+
+    return { mostCollected, mostWishlisted };
+  } catch {
+    // Fallback if DB not available
+    return { mostCollected: [], mostWishlisted: [] };
+  }
+}
+
+export const dynamic = "force-dynamic";
 
 const featuredCollectors = [
   { name: "James K.", archetype: "The Purist", watchCount: 12, score: 87, value: "$48k", tags: ["Swiss Made", "Mechanical", "Diver"], avatarColor: "#4a6741" },
@@ -78,7 +101,8 @@ function ToolIcon({ type }: { type: string }) {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const { mostCollected, mostWishlisted } = await getTopLists();
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
       <Nav />
