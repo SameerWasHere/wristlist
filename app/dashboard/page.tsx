@@ -150,6 +150,7 @@ export default async function DashboardPage() {
     movement: r.watch.movement || "",
     price: r.watch.retailPrice || 0,
     color: r.watch.color || "black",
+    imageUrl: r.watch.imageUrl || undefined,
   }));
 
   const totalValue = collectionForGrid.reduce((s, w) => s + w.price, 0);

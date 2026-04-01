@@ -28,7 +28,7 @@ export function Nav() {
           Collectors
         </Link>
         <Link
-          href="/#tools"
+          href="/tools"
           className="px-4 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
         >
           Tools

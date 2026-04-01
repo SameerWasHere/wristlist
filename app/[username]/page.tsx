@@ -1,165 +1,55 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { eq, and } from "drizzle-orm";
 import { Nav } from "@/components/nav";
 import { ScoreRing } from "@/components/score-ring";
 import { DnaTags } from "@/components/dna-tags";
 import { StatsBar } from "@/components/stats-bar";
 import { WatchGrid } from "@/components/watch-grid";
+import { getDb, schema } from "@/lib/db";
+import {
+  diversityScore,
+  gapAnalysis,
+  personality,
+  nextBestPurchase,
+  radarData,
+  type AnalyticsWatch,
+} from "@/lib/analytics";
 
-// -- Hardcoded profile data (Phase 1) ----------------------------------
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-const PROFILE = {
-  name: "Sameer",
-  handle: "sameer",
-  collectingSince: 2019,
-  archetype: "The Mechanical Purist",
-  tagline:
-    "A collection built on precision and heritage. Swiss and Japanese automatic movements, tool watches that can take a beating, and a growing appreciation for the understated.",
-  score: 48,
-  projectedScore: 67,
-  dnaTags: [
-    { text: "mechanical purist", primary: true },
-    { text: "tool watch lover", primary: true },
-    { text: "Swiss & Japanese", primary: false },
-    { text: "water ready", primary: false },
-    { text: "sapphire loyalist", primary: false },
-  ],
-  stats: [
-    { label: "Watches", value: "4", accent: "#6b5b3a" },
-    { label: "Collection Value", value: "$14,226" },
-    { label: "Categories", value: "4/7" },
-    { label: "On the List", value: "5", accent: "#8a7a5a" },
-  ],
-};
-
-const COLLECTION = [
-  {
-    brand: "Rolex",
-    model: "Submariner Date",
-    reference: "126610LN",
-    category: "Diver",
-    sizeMm: 41,
-    movement: "Automatic",
-    price: 12400,
-    color: "black",
-  },
-  {
-    brand: "Hamilton",
-    model: "Pilot Day Date",
-    reference: "H64615135",
-    category: "Pilot",
-    sizeMm: 42,
-    movement: "Automatic",
-    price: 1135,
-    color: "black",
-  },
-  {
-    brand: "Seiko",
-    model: "Prospex Alpinist",
-    reference: "SPB121",
-    category: "Field",
-    sizeMm: 39.5,
-    movement: "Automatic",
-    price: 599,
-    color: "green",
-  },
-  {
-    brand: "Casio",
-    model: "Vintage Multiface",
-    reference: "A130WEG-9A",
-    category: "Digital",
-    sizeMm: 40.5,
-    movement: "Battery",
-    price: 92,
-    color: "gold",
-  },
-];
-
-const WISHLIST = [
-  {
-    rank: 1,
-    brand: "Nomos Glash\u00fctte",
-    model: "Tangente 2date",
-    reference: "135",
-    detail: "German \u00b7 Dress \u00b7 Automatic \u00b7 37.5mm",
-    price: 2780,
-    fills: "Fills 4 gaps",
-    bestValue: true,
-    gradient: "linear-gradient(145deg,#20202a,#10101a)",
-    initial: "N",
-  },
-  {
-    rank: 2,
-    brand: "Omega",
-    model: "Speedmaster Moonwatch",
-    reference: "310.30.42.50.01.001",
-    detail: "Swiss \u00b7 Chronograph \u00b7 Manual wind \u00b7 42mm",
-    price: 6550,
-    fills: "Fills 2 gaps",
-    bestValue: false,
-    gradient: "linear-gradient(145deg,#1a1a2a,#0f0f1a)",
-    initial: "O",
-  },
-  {
-    rank: 3,
-    brand: "Tudor",
-    model: "Black Bay 58",
-    reference: "M79030N",
-    detail: "Swiss \u00b7 Diver \u00b7 Automatic \u00b7 39mm",
-    price: 3575,
-    fills: "Fills 1 gap",
-    bestValue: false,
-    gradient: "linear-gradient(145deg,#1a2028,#0f1418)",
-    initial: "T",
-  },
-  {
-    rank: 4,
-    brand: "Grand Seiko",
-    model: "Shunbun",
-    reference: "SBGA413",
-    detail: "Japanese \u00b7 Dress \u00b7 Automatic \u00b7 40mm",
-    price: 6300,
-    fills: "Fills 1 gap",
-    bestValue: false,
-    gradient: "linear-gradient(145deg,#2a2028,#1a1018)",
-    initial: "GS",
-  },
-  {
-    rank: 5,
-    brand: "Oris",
-    model: "Pointer Date",
-    reference: "4365-07",
-    detail: "Swiss \u00b7 Field \u00b7 Automatic \u00b7 40mm",
-    price: 2400,
-    fills: "Fills 1 gap",
-    bestValue: false,
-    gradient: "linear-gradient(145deg,#1a2a20,#0f1a10)",
-    initial: "O",
-  },
-];
-
-const WISHLIST_TOTAL = "$21,605";
-
-// -- Metadata -----------------------------------------------------------
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ username: string }>;
-}): Promise<Metadata> {
-  const { username } = await params;
+function toAnalyticsWatch(w: {
+  movement: string | null;
+  category: string | null;
+  braceletType: string | null;
+  shape: string | null;
+  color: string | null;
+  crystal: string | null;
+  origin: string | null;
+  caseBack: string | null;
+  waterResistanceM: number | null;
+  retailPrice: number | null;
+  brand: string;
+  model: string;
+}): AnalyticsWatch {
   return {
-    title: `${PROFILE.name}'s Collection — WristList`,
-    description: `${PROFILE.archetype}. ${PROFILE.tagline}`,
-    openGraph: {
-      title: `${PROFILE.name}'s Watch Collection`,
-      description: PROFILE.tagline,
-      url: `https://wristlist.com/${username}`,
-    },
+    movement: w.movement || "",
+    category: w.category || "",
+    bracelet_type: w.braceletType || "",
+    shape: w.shape || "",
+    color: w.color || "",
+    crystal: w.crystal || "",
+    origin: w.origin || "",
+    case_back: w.caseBack || "",
+    water_resistance_m: w.waterResistanceM || 0,
+    price: w.retailPrice || 0,
+    brand: w.brand,
+    model: w.model,
   };
 }
-
-// -- Helpers ------------------------------------------------------------
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -174,146 +64,376 @@ function padRank(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-// -- Page ---------------------------------------------------------------
+function gapColor(current: number, total: number): string {
+  const pct = current / total;
+  if (pct < 0.3) return "#DC2626";
+  if (pct <= 0.6) return "#B8860B";
+  return "#059669";
+}
+
+// ---------------------------------------------------------------------------
+// Data fetching
+// ---------------------------------------------------------------------------
+
+async function getProfileData(username: string) {
+  const db = getDb();
+
+  const [user] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.username, username))
+    .limit(1);
+
+  if (!user) return null;
+
+  const collectionRows = await db
+    .select({
+      id: schema.userWatches.id,
+      modelYear: schema.userWatches.modelYear,
+      modifications: schema.userWatches.modifications,
+      watch: schema.watchReferences,
+    })
+    .from(schema.userWatches)
+    .innerJoin(
+      schema.watchReferences,
+      eq(schema.userWatches.watchReferenceId, schema.watchReferences.id)
+    )
+    .where(
+      and(
+        eq(schema.userWatches.userId, user.id),
+        eq(schema.userWatches.status, "collection")
+      )
+    );
+
+  const wishlistRows = await db
+    .select({
+      id: schema.userWatches.id,
+      watch: schema.watchReferences,
+    })
+    .from(schema.userWatches)
+    .innerJoin(
+      schema.watchReferences,
+      eq(schema.userWatches.watchReferenceId, schema.watchReferences.id)
+    )
+    .where(
+      and(
+        eq(schema.userWatches.userId, user.id),
+        eq(schema.userWatches.status, "wishlist")
+      )
+    );
+
+  const collectionAnalytics = collectionRows.map((r) => toAnalyticsWatch(r.watch));
+  const wishlistAnalytics = wishlistRows.map((r) => toAnalyticsWatch(r.watch));
+
+  const score = diversityScore(collectionAnalytics);
+  const dna = personality(collectionAnalytics);
+  const gaps = gapAnalysis(collectionAnalytics, wishlistAnalytics);
+  const nbp = nextBestPurchase(collectionAnalytics, wishlistAnalytics);
+  const radar = radarData(collectionAnalytics, wishlistAnalytics);
+
+  // Projected score (collection + wishlist combined)
+  const projectedScore = diversityScore([...collectionAnalytics, ...wishlistAnalytics]);
+
+  const collectionForGrid = collectionRows.map((r) => ({
+    brand: r.watch.brand,
+    model: r.watch.model,
+    reference: r.watch.reference,
+    category: r.watch.category || "",
+    sizeMm: r.watch.sizeMm || 40,
+    movement: r.watch.movement || "",
+    price: r.watch.retailPrice || 0,
+    color: r.watch.color || "black",
+    imageUrl: r.watch.imageUrl || undefined,
+  }));
+
+  // Top 3 worst gaps
+  const topGaps = [...gaps]
+    .sort((a, b) => (a.owned.length / a.total) - (b.owned.length / b.total))
+    .slice(0, 3);
+
+  return {
+    user,
+    collectionRows,
+    wishlistRows,
+    collectionAnalytics,
+    wishlistAnalytics,
+    score,
+    projectedScore,
+    dna,
+    gaps,
+    topGaps,
+    nbp,
+    radar,
+    collectionForGrid,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Metadata
+// ---------------------------------------------------------------------------
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username } = await params;
+  const data = await getProfileData(username);
+
+  if (!data) {
+    return {
+      title: "Collector not found — WristList",
+      description: "This collector profile does not exist.",
+    };
+  }
+
+  const displayName = data.user.displayName || data.user.username;
+  const archetype = data.dna.archetype;
+  const description = data.dna.description;
+
+  return {
+    title: `${displayName}'s Collection — WristList`,
+    description: `${archetype}. ${description}`,
+    openGraph: {
+      title: `${displayName}'s Watch Collection`,
+      description: `${archetype}. ${description}`,
+      url: `https://wristlist.com/${username}`,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default async function ProfilePage({
   params,
 }: {
   params: Promise<{ username: string }>;
 }) {
-  // In Phase 1, we ignore the actual username and always show Sameer's data.
-  // Future: look up user from DB using `username`.
   const { username } = await params;
-  void username;
+  const data = await getProfileData(username);
+
+  if (!data) {
+    notFound();
+  }
+
+  const {
+    user,
+    collectionRows,
+    wishlistRows,
+    score,
+    projectedScore,
+    dna,
+    topGaps,
+    nbp,
+    collectionForGrid,
+  } = data;
+
+  const displayName = user.displayName || user.username;
+  const hasWatches = collectionRows.length > 0 || wishlistRows.length > 0;
+
+  // Stats bar — omit value on public profiles (privacy)
+  const stats = [
+    { label: "Watches", value: String(collectionRows.length), accent: "#6b5b3a" },
+    {
+      label: "Categories",
+      value: `${new Set(collectionForGrid.map((w) => w.category.toLowerCase()).filter(Boolean)).size}/7`,
+    },
+    { label: "On the List", value: String(wishlistRows.length), accent: "#8a7a5a" },
+  ];
+
+  // Wishlist ranked by gaps filled
+  const rankedWishlist = nbp.map((item, i) => ({
+    rank: i + 1,
+    brand: item.watch.brand,
+    model: item.watch.model,
+    price: item.watch.price,
+    gapsFilled: item.gapsFilled,
+    bestValue: i === 0 && item.gapsFilled > 0,
+  }));
 
   return (
     <div className="min-h-screen">
-      {/* Top bar */}
       <Nav />
 
-      {/* Page container */}
       <div className="max-w-[860px] mx-auto px-6 pb-20">
-        {/* Gradient divider */}
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
         {/* ── Profile Hero ────────────────────────────────── */}
         <div className="flex flex-col-reverse items-center text-center sm:flex-row sm:items-start sm:text-left gap-10 mb-12">
-          {/* Left column */}
           <div className="flex-1">
             <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">
               The collection of
             </p>
             <h1 className="text-[42px] font-black tracking-tighter leading-none mb-1">
-              {PROFILE.name}
+              {displayName}
             </h1>
             <p className="text-[13px] text-[rgba(26,24,20,0.35)] mb-4">
-              @{PROFILE.handle} &middot; Collecting since {PROFILE.collectingSince}
+              @{user.username}
+              {user.collectingSince && (
+                <> &middot; Collecting since {user.collectingSince}</>
+              )}
             </p>
 
             <p className="font-serif italic text-[20px] font-medium text-[rgba(26,24,20,0.7)] tracking-[-0.3px] mb-1.5">
-              {PROFILE.archetype}
+              {dna.archetype}
             </p>
             <p className="text-[14px] text-[rgba(26,24,20,0.4)] leading-[1.7] max-w-[420px] sm:max-w-[420px] mx-auto sm:mx-0">
-              {PROFILE.tagline}
+              {dna.description}
             </p>
 
-            <div className="mt-5 flex justify-center sm:justify-start">
-              <DnaTags tags={PROFILE.dnaTags} />
-            </div>
+            {dna.tags.length > 0 && (
+              <div className="mt-5 flex justify-center sm:justify-start">
+                <DnaTags
+                  tags={dna.tags.map((t) => ({
+                    text: t.text,
+                    primary: t.variant === "primary",
+                  }))}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Right column — Score */}
           <div className="flex-shrink-0 flex flex-col items-center">
-            <ScoreRing score={PROFILE.score} size={120} label="Diversity" />
-            <p className="text-[10px] text-[rgba(26,24,20,0.3)] font-medium mt-3">
-              {PROFILE.projectedScore} with wishlist
-            </p>
+            <ScoreRing score={score} size={120} label="Diversity" />
+            {wishlistRows.length > 0 && (
+              <p className="text-[10px] text-[rgba(26,24,20,0.3)] font-medium mt-3">
+                {projectedScore} with wishlist
+              </p>
+            )}
           </div>
         </div>
 
         {/* ── Stats Bar ───────────────────────────────────── */}
-        <div className="mb-12">
-          <StatsBar stats={PROFILE.stats} />
-        </div>
+        {hasWatches && (
+          <div className="mb-12">
+            <StatsBar stats={stats} />
+          </div>
+        )}
+
+        {/* ── Empty State ─────────────────────────────────── */}
+        {!hasWatches && (
+          <section className="mb-14">
+            <div className="border border-[rgba(26,24,20,0.08)] border-dashed rounded-[20px] py-16 px-8 text-center">
+              <p className="text-[24px] font-light tracking-tight mb-2">
+                <span className="font-serif italic font-medium text-[#8a7a5a]">
+                  No watches yet
+                </span>
+              </p>
+              <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-2 max-w-md mx-auto">
+                {displayName} hasn&apos;t added any watches yet. Check back soon!
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* ── The Collection ──────────────────────────────── */}
-        <section className="mb-14">
-          <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
-            <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
-              The Collection
+        {collectionRows.length > 0 && (
+          <section className="mb-14">
+            <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+              <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
+                The Collection
+              </h2>
+              <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
+                {collectionRows.length} piece{collectionRows.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <WatchGrid watches={collectionForGrid} />
+          </section>
+        )}
+
+        {/* ── Collection Gaps ─────────────────────────────── */}
+        {topGaps.length > 0 && collectionRows.length > 0 && (
+          <section className="mb-14">
+            <h2 className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-4">
+              Collection Gaps
             </h2>
-            <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
-              {COLLECTION.length} pieces
-            </span>
-          </div>
-          <WatchGrid watches={COLLECTION} />
-        </section>
+            <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[20px] px-6 py-5 space-y-4">
+              {topGaps.map((gap) => {
+                const pct = (gap.owned.length / gap.total) * 100;
+                const color = gapColor(gap.owned.length, gap.total);
+                return (
+                  <div key={gap.dimension}>
+                    <div className="flex justify-between items-baseline mb-1.5">
+                      <span className="text-[13px] font-semibold tracking-tight">
+                        {gap.label}
+                      </span>
+                      <span className="text-[12px] font-bold" style={{ color }}>
+                        {gap.owned.length}/{gap.total}
+                      </span>
+                    </div>
+                    <div className="h-[6px] rounded-full bg-[rgba(26,24,20,0.06)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, backgroundColor: color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ── The Wishlist ────────────────────────────────── */}
-        <section className="mb-14">
-          <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
-            <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
-              The Wishlist
-            </h2>
-            <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
-              {WISHLIST.length} pieces &middot; {WISHLIST_TOTAL}
-            </span>
-          </div>
+        {rankedWishlist.length > 0 && (
+          <section className="mb-14">
+            <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+              <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
+                The Wishlist
+              </h2>
+              <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
+                {rankedWishlist.length} piece{rankedWishlist.length !== 1 ? "s" : ""}
+              </span>
+            </div>
 
-          <div className="flex flex-col gap-3">
-            {WISHLIST.map((w) => (
-              <div
-                key={w.rank}
-                className="flex gap-4 items-center px-5 py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] cursor-pointer transition-all hover:translate-x-1 hover:border-[rgba(26,24,20,0.1)]"
-              >
-                {/* Rank */}
-                <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
-                  {padRank(w.rank)}
-                </span>
-
-                {/* Thumbnail */}
+            <div className="flex flex-col gap-3">
+              {rankedWishlist.map((w) => (
                 <div
-                  className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center font-black text-[18px] text-white/5"
-                  style={{ background: w.gradient }}
+                  key={w.rank}
+                  className="flex gap-4 items-center px-5 py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] transition-all hover:translate-x-1 hover:border-[rgba(26,24,20,0.1)]"
                 >
-                  {w.initial}
-                </div>
+                  <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
+                    {padRank(w.rank)}
+                  </span>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
-                    {w.brand}
-                  </p>
-                  <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
-                    {w.model}
-                  </p>
-                  <p className="text-[11px] text-[rgba(26,24,20,0.35)] mt-0.5">
-                    {w.detail}
-                  </p>
-                </div>
-
-                {/* Price & fills */}
-                <div className="text-right flex-shrink-0">
-                  <p className="text-[14px] font-black tracking-[-0.3px]">
-                    {formatPrice(w.price)}
-                  </p>
-                  <p
-                    className={`text-[9px] font-bold mt-0.5 ${
-                      w.bestValue
-                        ? "text-[#6b8f4e]"
-                        : "text-[#6b8f4e]"
-                    }`}
+                  <div
+                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center font-black text-[18px] text-white/5"
+                    style={{
+                      background: "linear-gradient(145deg,#20202a,#10101a)",
+                    }}
                   >
-                    {w.fills}
-                    {w.bestValue && (
-                      <span className="text-[#b8860b]"> &middot; Best value</span>
+                    {w.brand.charAt(0)}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
+                      {w.brand}
+                    </p>
+                    <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
+                      {w.model}
+                    </p>
+                  </div>
+
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[14px] font-black tracking-[-0.3px]">
+                      {formatPrice(w.price)}
+                    </p>
+                    {w.gapsFilled > 0 && (
+                      <p className="text-[9px] font-bold mt-0.5 text-[#6b8f4e]">
+                        Fills {w.gapsFilled} gap{w.gapsFilled !== 1 ? "s" : ""}
+                        {w.bestValue && (
+                          <span className="text-[#b8860b]"> &middot; Best value</span>
+                        )}
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── CTA Banner ──────────────────────────────────── */}
         <section className="mb-4">
