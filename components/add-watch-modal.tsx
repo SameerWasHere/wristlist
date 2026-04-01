@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 export interface WatchData {
+  id?: number;
   brand: string;
   model: string;
   reference: string;
@@ -82,8 +83,43 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     setMods((prev) => prev.filter((m) => m !== mod));
   }, []);
 
-  const handleAdd = useCallback(() => {
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = useCallback(async () => {
     const label = status === "collection" ? "collection" : "wishlist";
+    const endpoint = status === "collection" ? "/api/collection" : "/api/wishlist";
+
+    // If we have a watch reference ID, persist to DB
+    if (watch.id) {
+      setSaving(true);
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            watchReferenceId: watch.id,
+            modelYear: modelYear ? parseInt(modelYear) : undefined,
+            modifications: mods.length > 0 ? mods : undefined,
+          }),
+        });
+        if (res.status === 409) {
+          setToast(`${watch.brand} ${watch.model} is already in your ${label}`);
+          setTimeout(() => setToast(null), 3000);
+          setSaving(false);
+          return;
+        }
+        if (!res.ok) {
+          setToast("Sign in to save watches to your collection");
+          setTimeout(() => setToast(null), 3000);
+          setSaving(false);
+          return;
+        }
+      } catch {
+        // Fall through to toast
+      }
+      setSaving(false);
+    }
+
     setToast(`Added ${watch.brand} ${watch.model} to your ${label}!`);
     setTimeout(() => {
       setToast(null);
@@ -94,7 +130,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     setModelYear("");
     setMods([]);
     setModInput("");
-  }, [status, watch.brand, watch.model, onClose]);
+  }, [status, watch.brand, watch.model, watch.id, modelYear, mods, onClose]);
 
   if (!animating && !open) return null;
 
