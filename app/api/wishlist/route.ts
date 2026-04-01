@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
@@ -91,9 +91,21 @@ export async function POST(request: NextRequest) {
     .limit(1);
 
   if (!user) {
-    const res = await fetch(new URL("/api/user", request.url));
-    const data = await res.json();
-    user = data.user;
+    const clerkUser = await currentUser();
+    const username = clerkUser?.username || clerkUser?.firstName?.toLowerCase() || `user-${clerkId.slice(-6)}`;
+    [user] = await db
+      .insert(schema.users)
+      .values({
+        clerkId,
+        username,
+        displayName: clerkUser?.fullName || username,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!user) {
+      [user] = await db.select().from(schema.users).where(eq(schema.users.clerkId, clerkId)).limit(1);
+    }
   }
 
   const existing = await db
