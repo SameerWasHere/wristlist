@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { watchReferenceId, modelYear, modifications } = body;
+  const { watchReferenceId, modelYear, acquiredYear, milestone, modifications } = body;
 
   if (!watchReferenceId) {
     return NextResponse.json({ error: "watchReferenceId is required" }, { status: 400 });
@@ -135,6 +135,8 @@ export async function POST(request: NextRequest) {
       watchReferenceId,
       status: "collection",
       modelYear: modelYear || null,
+      acquiredYear: acquiredYear || null,
+      milestone: milestone || null,
       modifications: modifications || [],
     })
     .returning();

@@ -417,14 +417,11 @@ export default async function ProfilePage({
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <p className="text-[14px] font-black tracking-[-0.3px]">
-                      {formatPrice(w.price)}
-                    </p>
                     {w.gapsFilled > 0 && (
-                      <p className="text-[9px] font-bold mt-0.5 text-[#6b8f4e]">
+                      <p className="text-[9px] font-bold text-[#6b8f4e]">
                         Fills {w.gapsFilled} gap{w.gapsFilled !== 1 ? "s" : ""}
                         {w.bestValue && (
-                          <span className="text-[#b8860b]"> &middot; Best value</span>
+                          <span className="text-[#b8860b]"> &middot; Best next add</span>
                         )}
                       </p>
                     )}

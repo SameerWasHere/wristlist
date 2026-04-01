@@ -173,12 +173,6 @@ export default async function DashboardPage() {
               <span className="font-bold tracking-tight">{collectionRows.length}</span>
             </div>
             <div>
-              <span className="text-[rgba(26,24,20,0.35)] font-medium">Value</span>{" "}
-              <span className="font-bold tracking-tight">
-                ${totalValue >= 1000 ? `${Math.round(totalValue / 1000)}k` : totalValue}
-              </span>
-            </div>
-            <div>
               <span className="text-[rgba(26,24,20,0.35)] font-medium">Wishlist</span>{" "}
               <span className="font-bold tracking-tight">{wishlistRows.length}</span>
             </div>
@@ -260,11 +254,8 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-[20px] font-black tracking-[-0.5px]">
-                    {formatPrice(topNbp.watch.price)}
-                  </p>
-                  <span className="inline-block mt-1.5 text-[9px] font-bold text-[#059669] bg-[rgba(5,150,105,0.08)] px-2.5 py-1 rounded-full">
-                    Best value on your wishlist
+                  <span className="inline-block text-[9px] font-bold text-[#059669] bg-[rgba(5,150,105,0.08)] px-2.5 py-1 rounded-full">
+                    Best next add
                   </span>
                 </div>
               </div>

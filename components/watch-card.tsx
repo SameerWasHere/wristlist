@@ -97,11 +97,8 @@ export function WatchCard({
 
       {/* Bottom white section */}
       <div className="bg-white border border-t-0 border-[rgba(26,24,20,0.06)] rounded-b-[20px] p-5">
-        <div className="flex items-baseline justify-between mb-3">
-          <span className="text-[20px] font-bold text-foreground">
-            {formatPrice(price)}
-          </span>
-          <span className="text-[12px] font-mono text-[rgba(26,24,20,0.4)]">
+        <div className="mb-3">
+          <span className="text-[12px] font-mono text-[rgba(26,24,20,0.35)] tracking-wide">
             {reference}
           </span>
         </div>

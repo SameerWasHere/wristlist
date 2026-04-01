@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   title: "WristList — Share Your Watch Collection",
   description:
     "A community platform for watch enthusiasts to catalog, analyze, and share their collections.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({

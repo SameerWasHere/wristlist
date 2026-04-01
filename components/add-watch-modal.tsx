@@ -29,6 +29,8 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const clerk = useClerk();
   const [status, setStatus] = useState<"collection" | "wishlist">("collection");
   const [modelYear, setModelYear] = useState("");
+  const [acquiredYear, setAcquiredYear] = useState("");
+  const [milestone, setMilestone] = useState("");
   const [modInput, setModInput] = useState("");
   const [mods, setMods] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -111,6 +113,8 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
           body: JSON.stringify({
             watchReferenceId: watch.id,
             modelYear: modelYear ? parseInt(modelYear) : undefined,
+            acquiredYear: acquiredYear ? parseInt(acquiredYear) : undefined,
+            milestone: milestone || undefined,
             modifications: mods.length > 0 ? mods : undefined,
           }),
         });
@@ -142,9 +146,11 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     onClose();
     setStatus("collection");
     setModelYear("");
+    setAcquiredYear("");
+    setMilestone("");
     setMods([]);
     setModInput("");
-  }, [status, watch.brand, watch.model, watch.id, modelYear, mods, onClose, isSignedIn, clerk]);
+  }, [status, watch.brand, watch.model, watch.id, modelYear, acquiredYear, milestone, mods, onClose, isSignedIn, clerk]);
 
   if (!animating && !open) return null;
 
@@ -280,20 +286,50 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
               </div>
             </div>
 
-            {/* Model Year */}
+            {/* Year fields side by side */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div>
+                <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
+                  Model Year
+                </label>
+                <input
+                  type="number"
+                  value={modelYear}
+                  onChange={(e) => setModelYear(e.target.value)}
+                  placeholder="e.g. 2024"
+                  min={1900}
+                  max={2099}
+                  className="w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
+                  Year Acquired
+                </label>
+                <input
+                  type="number"
+                  value={acquiredYear}
+                  onChange={(e) => setAcquiredYear(e.target.value)}
+                  placeholder="e.g. 2023"
+                  min={1900}
+                  max={2099}
+                  className="w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                />
+              </div>
+            </div>
+
+            {/* Milestone / Story */}
             <div className="mb-5">
               <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
-                Model Year{" "}
+                The Story{" "}
                 <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
               </label>
               <input
-                type="number"
-                value={modelYear}
-                onChange={(e) => setModelYear(e.target.value)}
-                placeholder="e.g. 2024"
-                min={1900}
-                max={2099}
-                className="w-full px-4 py-2.5 text-[14px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                type="text"
+                value={milestone}
+                onChange={(e) => setMilestone(e.target.value)}
+                placeholder="Wedding gift, first promotion, birthday treat..."
+                className="w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
               />
             </div>
 

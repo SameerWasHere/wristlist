@@ -76,6 +76,8 @@ export const userWatches = pgTable("user_watches", {
   status: text("status", { enum: ["collection", "wishlist"] }).notNull(),
   modelYear: integer("model_year"),
   modifications: jsonb("modifications").$type<string[]>(),
+  acquiredYear: integer("acquired_year"),
+  milestone: text("milestone"), // e.g. "Wedding gift", "Graduation 2019", "First bonus"
   notes: text("notes"),
   dateAdded: timestamp("date_added").defaultNow().notNull(),
 });
