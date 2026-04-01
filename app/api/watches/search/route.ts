@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ilike, or } from "drizzle-orm";
+import { ilike, or, and, isNotNull, notInArray } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim();
 
   const popular = request.nextUrl.searchParams.get("popular");
+
+  // Parse optional excludeIds (comma-separated watch reference IDs)
+  const excludeIdsParam = request.nextUrl.searchParams.get("excludeIds");
+  const excludeIds = excludeIdsParam
+    ? excludeIdsParam.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    : [];
 
   // Return popular watches (first 6 with images)
   if (popular === "true") {
@@ -12,11 +18,14 @@ export async function GET(request: NextRequest) {
     try {
       const { getDb, schema } = await import("@/lib/db");
       const db = getDb();
-      const { isNotNull } = await import("drizzle-orm");
+      const conditions = [isNotNull(schema.watchReferences.imageUrl)];
+      if (excludeIds.length > 0) {
+        conditions.push(notInArray(schema.watchReferences.id, excludeIds));
+      }
       const rows = await db
         .select()
         .from(schema.watchReferences)
-        .where(isNotNull(schema.watchReferences.imageUrl))
+        .where(and(...conditions))
         .limit(6);
       return NextResponse.json({ results: rows });
     } catch {

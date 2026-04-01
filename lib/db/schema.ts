@@ -65,6 +65,24 @@ export const users = pgTable(
 // ---------------------------------------------------------------------------
 // user_watches — a user's collection + wishlist entries
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// watch_requests — user-submitted requests for watches not in the catalog
+// ---------------------------------------------------------------------------
+export const watchRequests = pgTable("watch_requests", {
+  id: serial("id").primaryKey(),
+  requestedBy: text("requested_by"), // clerk ID, optional (anonymous requests ok)
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  reference: text("reference"),
+  status: text("status", { enum: ["pending", "approved", "rejected"] })
+    .default("pending")
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// user_watches — a user's collection + wishlist entries
+// ---------------------------------------------------------------------------
 export const userWatches = pgTable("user_watches", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")

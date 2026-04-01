@@ -197,8 +197,7 @@ export function gapCount(
 // ---------------------------------------------------------------------------
 
 /**
- * Rank wishlist watches by efficiency: gaps filled per $1,000 spent.
- * Secondary sort by total gaps filled (desc).
+ * Rank wishlist watches by gaps filled (descending).
  */
 export function nextBestPurchase(
   collection: AnalyticsWatch[],
@@ -209,17 +208,13 @@ export function nextBestPurchase(
   return wishlist
     .map((watch) => {
       const gaps = gapCount(watch, collectionVals);
-      const priceK = (watch.price || 1) / 1000; // avoid div-by-zero
       return {
         watch,
         gapsFilled: gaps,
-        efficiency: gaps / priceK,
+        efficiency: gaps,
       };
     })
-    .sort((a, b) => {
-      if (b.efficiency !== a.efficiency) return b.efficiency - a.efficiency;
-      return b.gapsFilled - a.gapsFilled;
-    });
+    .sort((a, b) => b.gapsFilled - a.gapsFilled);
 }
 
 // ---------------------------------------------------------------------------
@@ -250,18 +245,12 @@ export function personality(watches: AnalyticsWatch[]): PersonalityResult {
   const categories = new Set(watches.map((w) => w.category?.toLowerCase()).filter(Boolean));
   const movements = new Set(watches.map((w) => w.movement?.toLowerCase()).filter(Boolean));
 
-  // Average price
-  const avgPrice =
-    watches.reduce((sum, w) => sum + (w.price || 0), 0) / watches.length;
-
   const score = diversityScore(watches);
 
   // Determine archetype
   let archetype = "The Collector";
   if (watches.length >= 10 && score >= 80) {
     archetype = "The Completionist";
-  } else if (avgPrice <= 500) {
-    archetype = "The Value Hunter";
   } else if (topMovement === "automatic" && !categories.has("dress")) {
     archetype = "The Mechanical Purist";
   } else if (topCategory === "diver") {
@@ -322,15 +311,6 @@ export function personality(watches: AnalyticsWatch[]): PersonalityResult {
   // 5. versatile (secondary)
   if (categories.has("dress") || categories.has("digital")) {
     tags.push({ text: "versatile", variant: "secondary" });
-  }
-
-  // 6. price tier (secondary)
-  if (avgPrice > 5000) {
-    tags.push({ text: "luxury tier", variant: "secondary" });
-  } else if (avgPrice > 1000) {
-    tags.push({ text: "mid-range sweet spot", variant: "secondary" });
-  } else {
-    tags.push({ text: "value hunter", variant: "secondary" });
   }
 
   return { archetype, description, tags };

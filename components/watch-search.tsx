@@ -35,15 +35,45 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [modalWatch, setModalWatch] = useState<WatchData | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestBrand, setRequestBrand] = useState("");
+  const [requestModel, setRequestModel] = useState("");
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch popular watches from DB on mount
+  // Fetch popular watches from DB on mount, excluding user's owned watches
   useEffect(() => {
-    fetch("/api/watches/search?popular=true")
-      .then((res) => res.json())
-      .then((data) => setPopularWatches(data.results ?? []))
-      .catch(() => {});
+    async function loadPopular() {
+      try {
+        // Try to get the user's owned watch reference IDs
+        let excludeIds: number[] = [];
+        try {
+          const colRes = await fetch("/api/collection");
+          if (colRes.ok) {
+            const colData = await colRes.json();
+            const watches = colData.watches ?? [];
+            excludeIds = watches
+              .map((w: { watch?: { id?: number } }) => w.watch?.id)
+              .filter((id: number | undefined): id is number => typeof id === "number");
+          }
+        } catch {
+          // Not signed in or error — no exclusions
+        }
+
+        const params = new URLSearchParams({ popular: "true" });
+        if (excludeIds.length > 0) {
+          params.set("excludeIds", excludeIds.join(","));
+        }
+        const res = await fetch(`/api/watches/search?${params.toString()}`);
+        const data = await res.json();
+        setPopularWatches(data.results ?? []);
+      } catch {
+        // silently fail
+      }
+    }
+    loadPopular();
   }, []);
 
   const search = useCallback(async (q: string) => {
@@ -164,11 +194,85 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                 </div>
               );
             })}
-            {/* Footer */}
-            <div className="border-t border-[rgba(26,24,20,0.06)] px-5 py-3 text-center">
-              <button className="text-[12px] text-[#8a7a5a] font-medium hover:underline">
-                Don&apos;t see your watch? Request it
-              </button>
+            {/* Footer — request form */}
+            <div className="border-t border-[rgba(26,24,20,0.06)] px-5 py-3">
+              {requestSubmitted ? (
+                <p className="text-[12px] text-[#8a7a5a] font-medium text-center">
+                  Request submitted! We&apos;ll review it soon.
+                </p>
+              ) : showRequestForm ? (
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!requestBrand.trim() || !requestModel.trim()) return;
+                    setRequestSubmitting(true);
+                    try {
+                      const res = await fetch("/api/watch-requests", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          brand: requestBrand.trim(),
+                          model: requestModel.trim(),
+                        }),
+                      });
+                      if (res.ok) {
+                        setRequestSubmitted(true);
+                        setShowRequestForm(false);
+                      }
+                    } catch {
+                      // silently fail
+                    } finally {
+                      setRequestSubmitting(false);
+                    }
+                  }}
+                  className="flex flex-col gap-2"
+                >
+                  <p className="text-[12px] text-[rgba(26,24,20,0.5)] font-medium mb-1">
+                    Request a watch to be added
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Brand (e.g. Omega)"
+                    value={requestBrand}
+                    onChange={(e) => setRequestBrand(e.target.value)}
+                    className="w-full px-3 py-2 text-[16px] border border-[rgba(26,24,20,0.1)] rounded-[10px] bg-[#f6f4ef] focus:outline-none focus:border-[rgba(138,122,90,0.4)] transition-all"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Model (e.g. Seamaster 300)"
+                    value={requestModel}
+                    onChange={(e) => setRequestModel(e.target.value)}
+                    className="w-full px-3 py-2 text-[16px] border border-[rgba(26,24,20,0.1)] rounded-[10px] bg-[#f6f4ef] focus:outline-none focus:border-[rgba(138,122,90,0.4)] transition-all"
+                    required
+                  />
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      type="submit"
+                      disabled={requestSubmitting}
+                      className="flex-1 py-2 text-[12px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      {requestSubmitting ? "Submitting..." : "Submit Request"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowRequestForm(false)}
+                      className="px-4 py-2 text-[12px] font-medium text-[rgba(26,24,20,0.4)] hover:text-[rgba(26,24,20,0.6)] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center">
+                  <button
+                    onClick={() => setShowRequestForm(true)}
+                    className="text-[12px] text-[#8a7a5a] font-medium hover:underline"
+                  >
+                    Don&apos;t see your watch? Request it
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -1,12 +1,12 @@
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 import { Nav } from "@/components/nav";
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <div className="min-h-screen">
       <Nav />
       <div className="flex justify-center pt-16 pb-20">
-        <SignIn
+        <SignUp
           routing="hash"
           appearance={{
             elements: {

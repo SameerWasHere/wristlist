@@ -16,6 +16,7 @@ import {
   type AnalyticsWatch,
 } from "@/lib/analytics";
 import { DashboardSearch } from "./dashboard-search";
+import { RemoveWatchButton } from "./remove-watch-button";
 
 export const metadata: Metadata = {
   title: "Dashboard — WristList",
@@ -157,6 +158,21 @@ export default async function DashboardPage() {
   const topNbp = nbp[0];
   const isEmpty = collectionRows.length === 0 && wishlistRows.length === 0;
 
+  // Wishlist ranked by gaps filled
+  const rankedWishlist = nbp.map((item, i) => {
+    // Find the matching wishlist row to get the userWatch id
+    const row = wishlistRows.find(
+      (r) => r.watch.brand === item.watch.brand && r.watch.model === item.watch.model
+    );
+    return {
+      rank: i + 1,
+      userWatchId: row?.id ?? 0,
+      brand: item.watch.brand,
+      model: item.watch.model,
+      gapsFilled: item.gapsFilled,
+    };
+  });
+
   return (
     <div className="min-h-screen">
       <Nav />
@@ -214,6 +230,20 @@ export default async function DashboardPage() {
               </span>
             </div>
             <WatchGrid watches={collectionForGrid} />
+            {/* Remove buttons */}
+            <div className="mt-4 flex flex-col gap-1">
+              {collectionRows.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-[rgba(26,24,20,0.02)] transition-colors"
+                >
+                  <span className="text-[12px] text-[rgba(26,24,20,0.4)]">
+                    {r.watch.brand} {r.watch.model}
+                  </span>
+                  <RemoveWatchButton userWatchId={r.id} type="collection" />
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
@@ -259,6 +289,62 @@ export default async function DashboardPage() {
                   </span>
                 </div>
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* My Wishlist */}
+        {rankedWishlist.length > 0 && (
+          <section className="mb-14">
+            <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+              <h2 className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
+                My Wishlist
+              </h2>
+              <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
+                {rankedWishlist.length} piece{rankedWishlist.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {rankedWishlist.map((w) => (
+                <div
+                  key={w.rank}
+                  className="flex gap-3 sm:gap-4 items-center px-3 sm:px-5 py-3 sm:py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px]"
+                >
+                  <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
+                    {String(w.rank).padStart(2, "0")}
+                  </span>
+
+                  <div
+                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center font-black text-[18px] text-white/5"
+                    style={{
+                      background: "linear-gradient(145deg,#20202a,#10101a)",
+                    }}
+                  >
+                    {w.brand.charAt(0)}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
+                      {w.brand}
+                    </p>
+                    <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
+                      {w.model}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {w.gapsFilled > 0 && (
+                      <span className="text-[9px] font-bold text-[#6b8f4e]">
+                        Fills {w.gapsFilled} gap{w.gapsFilled !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {w.userWatchId > 0 && (
+                      <RemoveWatchButton userWatchId={w.userWatchId} type="wishlist" />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
