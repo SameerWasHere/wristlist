@@ -5,6 +5,7 @@ import { AddWatchModal } from "@/components/add-watch-modal";
 import type { WatchData } from "@/components/add-watch-modal";
 
 interface SearchResult {
+  id?: number;
   brand: string;
   model: string;
   reference: string;
@@ -101,9 +102,10 @@ const POPULAR_WATCHES: SearchResult[] = [
 
 interface WatchSearchProps {
   onAdd?: (watch: SearchResult) => void;
+  onWatchAdded?: () => void;
 }
 
-export function WatchSearch({ onAdd }: WatchSearchProps) {
+export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -296,7 +298,10 @@ export function WatchSearch({ onAdd }: WatchSearchProps) {
         <AddWatchModal
           watch={modalWatch}
           open={modalOpen}
-          onClose={closeModal}
+          onClose={() => {
+            closeModal();
+            onWatchAdded?.();
+          }}
         />
       )}
     </>
