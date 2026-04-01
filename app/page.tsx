@@ -87,7 +87,7 @@ export default function Home() {
       <HeroSection />
 
       {/* Top Lists */}
-      <section className="max-w-[960px] mx-auto px-6 py-16">
+      <section id="top-lists" className="max-w-[960px] mx-auto px-6 py-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Top Lists
         </p>
@@ -111,7 +111,7 @@ export default function Home() {
       </section>
 
       {/* Featured Collectors */}
-      <section className="max-w-[960px] mx-auto px-6 pb-16">
+      <section id="collectors" className="max-w-[960px] mx-auto px-6 pb-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Featured Collectors
         </p>
@@ -133,7 +133,7 @@ export default function Home() {
       </section>
 
       {/* Watch Tools */}
-      <section className="max-w-[960px] mx-auto px-6 pb-16">
+      <section id="tools" className="max-w-[960px] mx-auto px-6 pb-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Watch Tools
         </p>
