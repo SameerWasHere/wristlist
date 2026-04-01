@@ -55,7 +55,7 @@ export default function ToolsPage() {
     <div className="min-h-screen bg-[#f6f4ef]">
       <Nav />
 
-      <div className="max-w-[640px] mx-auto px-6 py-16">
+      <div className="max-w-[640px] mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-2">
           Watch Tools
         </p>
@@ -89,7 +89,7 @@ export default function ToolsPage() {
 
       {/* Footer */}
       <footer className="border-t border-[rgba(26,24,20,0.06)] py-12">
-        <div className="max-w-[960px] mx-auto px-6 text-center">
+        <div className="max-w-[960px] mx-auto px-4 sm:px-6 text-center">
           <p className="text-[15px] font-light tracking-[4px] uppercase text-foreground">
             <strong className="font-bold">WRIST</strong>LIST
           </p>

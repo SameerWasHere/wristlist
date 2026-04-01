@@ -172,7 +172,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
         <div className="relative">
           {/* Magnifying glass icon */}
           <svg
-            className="absolute left-5 top-1/2 -translate-y-1/2 text-[rgba(26,24,20,0.25)]"
+            className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 text-[rgba(26,24,20,0.25)]"
             width="20"
             height="20"
             viewBox="0 0 24 24"
@@ -191,7 +191,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
             onChange={handleChange}
             onFocus={() => results.length > 0 && setIsOpen(true)}
             placeholder="Search any watch... Rolex Submariner, Omega Speedmaster..."
-            className="w-full pl-14 pr-5 py-4 text-[16px] bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] focus:outline-none focus:border-[rgba(138,122,90,0.4)] focus:ring-1 focus:ring-[rgba(138,122,90,0.4)] transition-colors placeholder:text-[rgba(26,24,20,0.25)]"
+            className="w-full pl-10 sm:pl-14 pr-4 sm:pr-5 py-3.5 sm:py-4 text-[16px] bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] focus:outline-none focus:border-[rgba(138,122,90,0.4)] focus:ring-1 focus:ring-[rgba(138,122,90,0.4)] transition-colors placeholder:text-[rgba(26,24,20,0.25)]"
           />
           {isLoading && (
             <div className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[rgba(26,24,20,0.1)] border-t-[#8a7a5a] rounded-full animate-spin" />
@@ -206,7 +206,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
               return (
                 <div key={`${result.reference}-${i}`}>
                   {i > 0 && <div className="mx-4 border-t border-[rgba(26,24,20,0.06)]" />}
-                  <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
+                  <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-3.5 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
                     {/* Thumb */}
                     <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0">
                       <span className="text-white/30 text-[14px] font-bold">{initial}</span>
@@ -256,7 +256,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                 {i > 0 && (
                   <div className="mx-5 border-t border-[rgba(26,24,20,0.06)]" />
                 )}
-                <div className="flex items-center gap-4 px-5 py-4 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
+                <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
                   {/* Thumb */}
                   <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0">
                     <span className="text-white/30 text-[15px] font-bold">

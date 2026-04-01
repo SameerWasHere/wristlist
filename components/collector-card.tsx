@@ -24,7 +24,7 @@ export function CollectorCard({
   const initial = name.charAt(0).toUpperCase();
 
   return (
-    <Link href={href} className="block bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-5 min-w-[220px] hover:-translate-y-[3px] hover:shadow-[0_12px_48px_rgba(26,24,20,0.12)] transition-all duration-300 cursor-pointer no-underline text-inherit">
+    <Link href={href} className="block bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-5 min-w-[200px] sm:min-w-[220px] hover:-translate-y-[3px] hover:shadow-[0_12px_48px_rgba(26,24,20,0.12)] transition-all duration-300 cursor-pointer no-underline text-inherit">
       {/* Avatar + identity */}
       <div className="flex items-center gap-3 mb-4">
         <div

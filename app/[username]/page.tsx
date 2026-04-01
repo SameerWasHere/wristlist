@@ -257,7 +257,7 @@ export default async function ProfilePage({
     <div className="min-h-screen">
       <Nav />
 
-      <div className="max-w-[860px] mx-auto px-6 pb-20">
+      <div className="max-w-[860px] mx-auto px-4 sm:px-6 pb-20">
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
         {/* ── Profile Hero ────────────────────────────────── */}
@@ -266,7 +266,7 @@ export default async function ProfilePage({
             <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">
               The collection of
             </p>
-            <h1 className="text-[42px] font-black tracking-tighter leading-none mb-1">
+            <h1 className="text-[32px] sm:text-[42px] font-black tracking-tighter leading-none mb-1">
               {displayName}
             </h1>
             <p className="text-[13px] text-[rgba(26,24,20,0.35)] mb-4">
@@ -349,7 +349,7 @@ export default async function ProfilePage({
             <h2 className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-4">
               Collection Gaps
             </h2>
-            <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[20px] px-6 py-5 space-y-4">
+            <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[20px] px-4 sm:px-6 py-5 space-y-4">
               {topGaps.map((gap) => {
                 const pct = (gap.owned.length / gap.total) * 100;
                 const color = gapColor(gap.owned.length, gap.total);
@@ -392,7 +392,7 @@ export default async function ProfilePage({
               {rankedWishlist.map((w) => (
                 <div
                   key={w.rank}
-                  className="flex gap-4 items-center px-5 py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] transition-all hover:translate-x-1 hover:border-[rgba(26,24,20,0.1)]"
+                  className="flex gap-3 sm:gap-4 items-center px-3 sm:px-5 py-3 sm:py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] transition-all hover:translate-x-1 hover:border-[rgba(26,24,20,0.1)]"
                 >
                   <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
                     {padRank(w.rank)}

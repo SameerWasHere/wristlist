@@ -10,14 +10,14 @@ interface StatsBarProps {
 
 export function StatsBar({ stats }: StatsBarProps) {
   return (
-    <div className="flex rounded-[18px] bg-[rgba(26,24,20,0.06)] gap-px overflow-hidden">
+    <div className="grid grid-cols-3 rounded-[18px] bg-[rgba(26,24,20,0.06)] gap-px overflow-hidden">
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="flex-1 flex flex-col items-center justify-center py-4 bg-background"
+          className="flex flex-col items-center justify-center py-3 sm:py-4 bg-background"
         >
           <span
-            className="text-[22px] font-black tracking-tight leading-none"
+            className="text-[18px] sm:text-[22px] font-black tracking-tight leading-none"
             style={stat.accent ? { color: stat.accent } : undefined}
           >
             {stat.value}

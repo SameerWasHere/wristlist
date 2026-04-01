@@ -87,7 +87,7 @@ export default function Home() {
       <HeroSection />
 
       {/* Top Lists */}
-      <section id="top-lists" className="max-w-[960px] mx-auto px-6 py-16 scroll-mt-16">
+      <section id="top-lists" className="max-w-[960px] mx-auto px-4 sm:px-6 py-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Top Lists
         </p>
@@ -106,16 +106,16 @@ export default function Home() {
       </section>
 
       {/* CTA Banner */}
-      <section className="max-w-[960px] mx-auto px-6 pb-16">
+      <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
         <CtaBanner />
       </section>
 
       {/* Featured Collectors */}
-      <section id="collectors" className="max-w-[960px] mx-auto px-6 pb-16 scroll-mt-16">
+      <section id="collectors" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Featured Collectors
         </p>
-        <div className="flex gap-5 overflow-x-auto pb-4 -mx-6 px-6 snap-x">
+        <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x">
           {featuredCollectors.map((c) => (
             <div key={c.name} className="snap-start flex-shrink-0">
               <CollectorCard
@@ -133,7 +133,7 @@ export default function Home() {
       </section>
 
       {/* Watch Tools */}
-      <section id="tools" className="max-w-[960px] mx-auto px-6 pb-16 scroll-mt-16">
+      <section id="tools" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Watch Tools
         </p>
@@ -154,7 +154,7 @@ export default function Home() {
       </section>
 
       {/* Recent Activity */}
-      <section className="max-w-[960px] mx-auto px-6 pb-16">
+      <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
           Recent Activity
         </p>
@@ -162,7 +162,7 @@ export default function Home() {
           {recentActivity.map((item, i) => (
             <div
               key={i}
-              className={`flex items-center gap-4 px-6 py-4 ${i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""}`}
+              className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 ${i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""}`}
             >
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-[rgba(26,24,20,0.06)] flex items-center justify-center flex-shrink-0">
@@ -189,7 +189,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-[rgba(26,24,20,0.06)] py-12">
-        <div className="max-w-[960px] mx-auto px-6 text-center">
+        <div className="max-w-[960px] mx-auto px-4 sm:px-6 text-center">
           <p className="text-[15px] font-light tracking-[4px] uppercase text-foreground">
             <strong className="font-bold">WRIST</strong>LIST
           </p>

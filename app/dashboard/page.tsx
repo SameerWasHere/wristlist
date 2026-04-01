@@ -161,13 +161,13 @@ export default async function DashboardPage() {
     <div className="min-h-screen">
       <Nav />
 
-      <div className="max-w-[960px] mx-auto px-6 pb-20">
+      <div className="max-w-[960px] mx-auto px-4 sm:px-6 pb-20">
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-8" />
 
         {/* Compact Score Bar */}
-        <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] px-6 py-4 mb-10 flex items-center gap-6">
+        <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] px-4 sm:px-6 py-4 mb-10 flex flex-wrap items-center gap-4 sm:gap-6">
           <ScoreRing score={score} size={44} />
-          <div className="flex items-center gap-8 text-[13px]">
+          <div className="flex items-center gap-4 sm:gap-8 text-[13px]">
             <div>
               <span className="text-[rgba(26,24,20,0.35)] font-medium">Owned</span>{" "}
               <span className="font-bold tracking-tight">{collectionRows.length}</span>
@@ -278,7 +278,7 @@ export default async function DashboardPage() {
             <h2 className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-4">
               Collection Gaps
             </h2>
-            <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[20px] px-6 py-5 space-y-4">
+            <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[20px] px-4 sm:px-6 py-5 space-y-4">
               {topGaps.map((gap) => {
                 const pct = (gap.owned.length / gap.total) * 100;
                 const color = gapColor(gap.owned.length, gap.total);

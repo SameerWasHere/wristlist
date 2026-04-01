@@ -192,7 +192,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
             <div className="w-10 h-1 rounded-full bg-[rgba(26,24,20,0.12)]" />
           </div>
 
-          <div className="px-6 pb-8 pt-2">
+          <div className="px-4 sm:px-6 pb-8 pt-2">
             {/* Close button */}
             <div className="flex justify-end mb-2">
               <button

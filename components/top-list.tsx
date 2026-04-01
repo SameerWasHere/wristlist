@@ -17,7 +17,7 @@ export function TopList({ title, subtitle, items }: TopListProps) {
   return (
     <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4">
+      <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4">
         <h3 className="text-[18px] font-bold text-foreground">{title}</h3>
         <p className="text-[13px] text-[rgba(26,24,20,0.4)] mt-0.5">{subtitle}</p>
       </div>
@@ -29,7 +29,7 @@ export function TopList({ title, subtitle, items }: TopListProps) {
           return (
             <div
               key={item.rank}
-              className="flex items-center gap-4 px-6 py-3.5 border-t border-[rgba(26,24,20,0.06)] hover:bg-[rgba(26,24,20,0.015)] transition-colors"
+              className="flex items-center gap-3 sm:gap-4 px-3 sm:px-6 py-3 sm:py-3.5 border-t border-[rgba(26,24,20,0.06)] hover:bg-[rgba(26,24,20,0.015)] transition-colors"
             >
               {/* Rank */}
               <span
@@ -52,7 +52,7 @@ export function TopList({ title, subtitle, items }: TopListProps) {
               </div>
 
               {/* Count */}
-              <span className="text-[13px] font-bold text-[rgba(26,24,20,0.3)] flex-shrink-0">
+              <span className="text-[11px] sm:text-[13px] font-bold text-[rgba(26,24,20,0.3)] flex-shrink-0">
                 {item.count.toLocaleString()}
               </span>
             </div>
