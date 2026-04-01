@@ -56,13 +56,17 @@ export function CollectorCard({
             Score
           </p>
         </div>
-        <div className="w-px h-6 bg-[rgba(26,24,20,0.06)]" />
-        <div className="flex-1">
-          <p className="text-[16px] font-black text-foreground leading-none">{value}</p>
-          <p className="text-[9px] uppercase tracking-wider text-[rgba(26,24,20,0.4)] mt-1">
-            Value
-          </p>
-        </div>
+        {value && (
+          <>
+            <div className="w-px h-6 bg-[rgba(26,24,20,0.06)]" />
+            <div className="flex-1">
+              <p className="text-[16px] font-black text-foreground leading-none">{value}</p>
+              <p className="text-[9px] uppercase tracking-wider text-[rgba(26,24,20,0.4)] mt-1">
+                Value
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Tags */}

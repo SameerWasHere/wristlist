@@ -2,107 +2,199 @@ import { Nav } from "@/components/nav";
 import { TopList } from "@/components/top-list";
 import { CollectorCard } from "@/components/collector-card";
 import { CtaBanner } from "@/components/cta-banner";
+import { WatchToolsLive } from "@/components/watch-tools-live";
 import { HeroSection } from "./hero-section";
 import { getDb, schema } from "@/lib/db";
+import { eq, sql, desc } from "drizzle-orm";
+import { personality, diversityScore, type AnalyticsWatch } from "@/lib/analytics";
+
+export const dynamic = "force-dynamic";
+
+// ---------------------------------------------------------------------------
+// Data fetching — all from real DB, no hardcoded anything
+// ---------------------------------------------------------------------------
 
 async function getTopLists() {
   try {
     const db = getDb();
-    const allWatches = await db.select().from(schema.watchReferences).limit(19);
 
-    // Split into two lists — first 5 as "most collected", next 5 as "most wishlisted"
-    // Fake counts for now (will be real when we have user data to aggregate)
-    const fakeCounts = [4823, 3941, 2817, 2204, 1956, 3102, 2670, 1843, 1521, 1389];
+    // Most collected: watches with the most user_watches entries where status = 'collection'
+    const collected = await db
+      .select({
+        watchId: schema.watchReferences.id,
+        brand: schema.watchReferences.brand,
+        model: schema.watchReferences.model,
+        reference: schema.watchReferences.reference,
+        category: schema.watchReferences.category,
+        sizeMm: schema.watchReferences.sizeMm,
+        imageUrl: schema.watchReferences.imageUrl,
+        count: sql<number>`count(${schema.userWatches.id})::int`,
+      })
+      .from(schema.userWatches)
+      .innerJoin(schema.watchReferences, eq(schema.userWatches.watchReferenceId, schema.watchReferences.id))
+      .where(eq(schema.userWatches.status, "collection"))
+      .groupBy(schema.watchReferences.id)
+      .orderBy(desc(sql`count(${schema.userWatches.id})`))
+      .limit(5);
 
-    const mostCollected = allWatches.slice(0, 5).map((w, i) => ({
-      rank: i + 1,
-      name: `${w.brand} ${w.model}`,
-      detail: [w.reference, w.category, w.sizeMm ? `${w.sizeMm}mm` : null].filter(Boolean).join(" · "),
-      count: fakeCounts[i],
-      brand: w.brand,
-      initial: w.brand.charAt(0),
-      imageUrl: w.imageUrl,
-    }));
+    // Most wishlisted: watches with the most user_watches entries where status = 'wishlist'
+    const wishlisted = await db
+      .select({
+        watchId: schema.watchReferences.id,
+        brand: schema.watchReferences.brand,
+        model: schema.watchReferences.model,
+        reference: schema.watchReferences.reference,
+        category: schema.watchReferences.category,
+        sizeMm: schema.watchReferences.sizeMm,
+        imageUrl: schema.watchReferences.imageUrl,
+        count: sql<number>`count(${schema.userWatches.id})::int`,
+      })
+      .from(schema.userWatches)
+      .innerJoin(schema.watchReferences, eq(schema.userWatches.watchReferenceId, schema.watchReferences.id))
+      .where(eq(schema.userWatches.status, "wishlist"))
+      .groupBy(schema.watchReferences.id)
+      .orderBy(desc(sql`count(${schema.userWatches.id})`))
+      .limit(5);
 
-    const mostWishlisted = allWatches.slice(5, 10).map((w, i) => ({
-      rank: i + 1,
-      name: `${w.brand} ${w.model}`,
-      detail: [w.reference, w.category, w.sizeMm ? `${w.sizeMm}mm` : null].filter(Boolean).join(" · "),
-      count: fakeCounts[i + 5],
-      brand: w.brand,
-      initial: w.brand.charAt(0),
-      imageUrl: w.imageUrl,
-    }));
+    const toItems = (rows: typeof collected) =>
+      rows.map((w, i) => ({
+        rank: i + 1,
+        name: `${w.brand} ${w.model}`,
+        detail: [w.reference, w.category, w.sizeMm ? `${w.sizeMm}mm` : null].filter(Boolean).join(" · "),
+        count: w.count,
+        brand: w.brand,
+        initial: w.brand.charAt(0),
+        imageUrl: w.imageUrl,
+      }));
 
-    return { mostCollected, mostWishlisted };
+    return { mostCollected: toItems(collected), mostWishlisted: toItems(wishlisted) };
   } catch {
-    // Fallback if DB not available
     return { mostCollected: [], mostWishlisted: [] };
   }
 }
 
-export const dynamic = "force-dynamic";
+async function getFeaturedCollectors() {
+  try {
+    const db = getDb();
 
-const featuredCollectors = [
-  { name: "James K.", archetype: "The Purist", watchCount: 12, score: 87, value: "$48k", tags: ["Swiss Made", "Mechanical", "Diver"], avatarColor: "#4a6741" },
-  { name: "Sarah M.", archetype: "The Eclectic", watchCount: 23, score: 94, value: "$31k", tags: ["Vintage", "Dress", "Japanese"], avatarColor: "#8a5a5a" },
-  { name: "David R.", archetype: "The Strategist", watchCount: 8, score: 78, value: "$62k", tags: ["Investment", "Limited Edition", "Rolex"], avatarColor: "#5a6a8a" },
-  { name: "Mika T.", archetype: "The Explorer", watchCount: 17, score: 91, value: "$22k", tags: ["Tool Watch", "Field", "Micro-brand"], avatarColor: "#8a7a5a" },
-];
+    // Get users who have at least 1 watch, ordered by most watches
+    const usersWithCounts = await db
+      .select({
+        userId: schema.users.id,
+        username: schema.users.username,
+        displayName: schema.users.displayName,
+        count: sql<number>`count(${schema.userWatches.id})::int`,
+      })
+      .from(schema.users)
+      .innerJoin(schema.userWatches, eq(schema.users.id, schema.userWatches.userId))
+      .where(eq(schema.userWatches.status, "collection"))
+      .groupBy(schema.users.id)
+      .orderBy(desc(sql`count(${schema.userWatches.id})`))
+      .limit(6);
 
-const tools = [
-  { icon: "clock", title: "Beat Counter", description: "Measure your watch's beats per hour with your phone's microphone" },
-  { icon: "moon", title: "Moon Phase", description: "Current moon phase and next moonphase complication alignment" },
-  { icon: "calendar", title: "Date Corrector", description: "Calculate date-wheel adjustments after your watch has been sitting" },
-  { icon: "target", title: "Accuracy Log", description: "Track daily drift and rate consistency over time" },
-];
+    // For each user, get their watches and run analytics
+    const collectors = await Promise.all(
+      usersWithCounts.map(async (u) => {
+        const watches = await db
+          .select({ watch: schema.watchReferences })
+          .from(schema.userWatches)
+          .innerJoin(schema.watchReferences, eq(schema.userWatches.watchReferenceId, schema.watchReferences.id))
+          .where(eq(schema.userWatches.userId, u.userId));
 
-const recentActivity = [
-  { user: "Alex P.", action: "added", watch: "Omega Speedmaster Moonwatch", time: "2 min ago" },
-  { user: "Jordan L.", action: "wishlisted", watch: "Grand Seiko Shunbun SBGA413", time: "8 min ago" },
-  { user: "Taylor R.", action: "added", watch: "Tudor Black Bay 58", time: "14 min ago" },
-  { user: "Morgan S.", action: "added", watch: "Casio G-Shock CasiOak", time: "23 min ago" },
-  { user: "Casey W.", action: "wishlisted", watch: "Cartier Tank Must", time: "31 min ago" },
-];
+        const analyticsWatches: AnalyticsWatch[] = watches.map((r) => ({
+          movement: r.watch.movement || "",
+          category: r.watch.category || "",
+          bracelet_type: r.watch.braceletType || "",
+          shape: r.watch.shape || "",
+          color: r.watch.color || "",
+          crystal: r.watch.crystal || "",
+          origin: r.watch.origin || "",
+          case_back: r.watch.caseBack || "",
+          water_resistance_m: r.watch.waterResistanceM || 0,
+          price: r.watch.retailPrice || 0,
+          brand: r.watch.brand,
+          model: r.watch.model,
+        }));
 
-function ToolIcon({ type }: { type: string }) {
-  if (type === "clock") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
+        const dna = personality(analyticsWatches);
+        const score = diversityScore(analyticsWatches);
+
+        return {
+          name: u.displayName || u.username,
+          archetype: dna.archetype,
+          watchCount: u.count,
+          score,
+          tags: dna.tags.slice(0, 3).map((t) => t.text),
+          href: `/${u.username}`,
+        };
+      })
     );
+
+    return collectors;
+  } catch {
+    return [];
   }
-  if (type === "moon") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-      </svg>
-    );
-  }
-  if (type === "calendar") {
-    return (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-      </svg>
-    );
-  }
-  // target
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  );
 }
 
+async function getRecentActivity() {
+  try {
+    const db = getDb();
+
+    const recent = await db
+      .select({
+        userName: schema.users.displayName,
+        username: schema.users.username,
+        status: schema.userWatches.status,
+        brand: schema.watchReferences.brand,
+        model: schema.watchReferences.model,
+        dateAdded: schema.userWatches.dateAdded,
+      })
+      .from(schema.userWatches)
+      .innerJoin(schema.users, eq(schema.userWatches.userId, schema.users.id))
+      .innerJoin(schema.watchReferences, eq(schema.userWatches.watchReferenceId, schema.watchReferences.id))
+      .orderBy(desc(schema.userWatches.dateAdded))
+      .limit(8);
+
+    return recent.map((r) => {
+      const name = r.userName || r.username;
+      const action = r.status === "collection" ? "added" : "wishlisted";
+      const watch = `${r.brand} ${r.model}`;
+      const ago = timeAgo(r.dateAdded);
+      return { user: name, initial: name.charAt(0), action, watch, time: ago };
+    });
+  } catch {
+    return [];
+  }
+}
+
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+// Tools section is now a live component (WatchToolsLive)
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default async function Home() {
-  const { mostCollected, mostWishlisted } = await getTopLists();
+  const [{ mostCollected, mostWishlisted }, collectors, activity] = await Promise.all([
+    getTopLists(),
+    getFeaturedCollectors(),
+    getRecentActivity(),
+  ]);
+
+  const hasTopLists = mostCollected.length > 0 || mostWishlisted.length > 0;
+  const hasCollectors = collectors.length > 0;
+  const hasActivity = activity.length > 0;
+
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
       <Nav />
@@ -110,106 +202,88 @@ export default async function Home() {
       {/* Hero */}
       <HeroSection />
 
-      {/* Top Lists */}
-      <section id="top-lists" className="max-w-[960px] mx-auto px-4 sm:px-6 py-16 scroll-mt-16">
-        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-          Top Lists
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <TopList
-            title="Most Collected"
-            subtitle="Watches owned by the most collectors"
-            items={mostCollected}
-          />
-          <TopList
-            title="Most Wishlisted"
-            subtitle="The watches everyone wants next"
-            items={mostWishlisted}
-          />
-        </div>
-      </section>
+      {/* Top Lists — only shows if real users have added watches */}
+      {hasTopLists && (
+        <section id="top-lists" className="max-w-[960px] mx-auto px-4 sm:px-6 py-16 scroll-mt-16">
+          <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
+            Top Lists
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {mostCollected.length > 0 && (
+              <TopList title="Most Collected" subtitle="Watches owned by the most collectors" items={mostCollected} />
+            )}
+            {mostWishlisted.length > 0 && (
+              <TopList title="Most Wishlisted" subtitle="The watches everyone wants next" items={mostWishlisted} />
+            )}
+          </div>
+        </section>
+      )}
 
       {/* CTA Banner */}
       <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
         <CtaBanner />
       </section>
 
-      {/* Featured Collectors */}
-      <section id="collectors" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
-        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-          Featured Collectors
-        </p>
-        <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x">
-          {featuredCollectors.map((c) => (
-            <div key={c.name} className="snap-start flex-shrink-0">
-              <CollectorCard
-                name={c.name}
-                archetype={c.archetype}
-                watchCount={c.watchCount}
-                score={c.score}
-                value={c.value}
-                tags={c.tags}
-                avatarColor={c.avatarColor}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Featured Collectors — only shows if real users exist */}
+      {hasCollectors && (
+        <section id="collectors" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
+          <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
+            Collectors
+          </p>
+          <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x">
+            {collectors.map((c) => (
+              <div key={c.name} className="snap-start flex-shrink-0">
+                <CollectorCard
+                  name={c.name}
+                  archetype={c.archetype}
+                  watchCount={c.watchCount}
+                  score={c.score}
+                  value=""
+                  tags={c.tags}
+                  href={c.href}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Watch Tools */}
+      {/* Watch Tools — live display for setting your watch */}
       <section id="tools" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
         <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-          Watch Tools
+          Set Your Watch
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {tools.map((tool) => (
-            <div
-              key={tool.title}
-              className="bg-white rounded-[16px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-5 hover:-translate-y-[2px] hover:shadow-[0_8px_32px_rgba(26,24,20,0.08)] transition-all duration-300 cursor-pointer"
-            >
-              <div className="text-[#8a7a5a] mb-3">
-                <ToolIcon type={tool.icon} />
-              </div>
-              <h3 className="text-[14px] font-bold text-foreground mb-1">{tool.title}</h3>
-              <p className="text-[12px] text-[rgba(26,24,20,0.4)] leading-relaxed">{tool.description}</p>
-            </div>
-          ))}
-        </div>
+        <WatchToolsLive />
       </section>
 
-      {/* Recent Activity */}
-      <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
-        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-          Recent Activity
-        </p>
-        <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
-          {recentActivity.map((item, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 ${i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""}`}
-            >
-              {/* Avatar */}
-              <div className="w-9 h-9 rounded-full bg-[rgba(26,24,20,0.06)] flex items-center justify-center flex-shrink-0">
-                <span className="text-[13px] font-bold text-[rgba(26,24,20,0.3)]">
-                  {item.user.charAt(0)}
-                </span>
+      {/* Recent Activity — only shows if real activity exists */}
+      {hasActivity && (
+        <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
+          <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
+            Recent Activity
+          </p>
+          <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
+            {activity.map((item, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 ${i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""}`}
+              >
+                <div className="w-9 h-9 rounded-full bg-[rgba(26,24,20,0.06)] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[13px] font-bold text-[rgba(26,24,20,0.3)]">{item.initial}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] text-foreground truncate">
+                    <span className="font-semibold">{item.user}</span>{" "}
+                    <span className="text-[rgba(26,24,20,0.4)]">{item.action}</span>{" "}
+                    <span className="font-medium text-[#8a7a5a]">{item.watch}</span>
+                  </p>
+                </div>
+                <span className="text-[12px] text-[rgba(26,24,20,0.3)] flex-shrink-0">{item.time}</span>
               </div>
-              {/* Text */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] text-foreground truncate">
-                  <span className="font-semibold">{item.user}</span>
-                  {" "}
-                  <span className="text-[rgba(26,24,20,0.4)]">{item.action}</span>
-                  {" "}
-                  <span className="font-medium">{item.watch}</span>
-                </p>
-              </div>
-              {/* Time */}
-              <span className="text-[12px] text-[rgba(26,24,20,0.3)] flex-shrink-0">{item.time}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-[rgba(26,24,20,0.06)] py-12">
