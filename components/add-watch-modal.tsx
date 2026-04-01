@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useUser, useClerk } from "@clerk/nextjs";
 
 export interface WatchData {
   id?: number;
@@ -24,6 +25,8 @@ interface AddWatchModalProps {
 }
 
 export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
+  const { isSignedIn } = useUser();
+  const clerk = useClerk();
   const [status, setStatus] = useState<"collection" | "wishlist">("collection");
   const [modelYear, setModelYear] = useState("");
   const [modInput, setModInput] = useState("");
@@ -89,7 +92,16 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     const label = status === "collection" ? "collection" : "wishlist";
     const endpoint = status === "collection" ? "/api/collection" : "/api/wishlist";
 
-    // If we have a watch reference ID, persist to DB
+    // If not signed in, trigger Clerk sign-in modal
+    if (!isSignedIn) {
+      onClose();
+      clerk.openSignIn({
+        fallbackRedirectUrl: window.location.pathname,
+      });
+      return;
+    }
+
+    // Persist to DB
     if (watch.id) {
       setSaving(true);
       try {
@@ -109,13 +121,16 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
           return;
         }
         if (!res.ok) {
-          setToast("Sign in to save watches to your collection");
+          setToast("Something went wrong. Please try again.");
           setTimeout(() => setToast(null), 3000);
           setSaving(false);
           return;
         }
       } catch {
-        // Fall through to toast
+        setToast("Something went wrong. Please try again.");
+        setTimeout(() => setToast(null), 3000);
+        setSaving(false);
+        return;
       }
       setSaving(false);
     }
@@ -125,12 +140,11 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
       setToast(null);
     }, 3000);
     onClose();
-    // Reset form
     setStatus("collection");
     setModelYear("");
     setMods([]);
     setModInput("");
-  }, [status, watch.brand, watch.model, watch.id, modelYear, mods, onClose]);
+  }, [status, watch.brand, watch.model, watch.id, modelYear, mods, onClose, isSignedIn, clerk]);
 
   if (!animating && !open) return null;
 
@@ -144,8 +158,13 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     watch.material,
   ].filter(Boolean);
 
-  const buttonLabel =
-    status === "collection" ? "Add to Collection" : "Add to Wishlist";
+  const buttonLabel = !isSignedIn
+    ? "Sign in to Add"
+    : saving
+      ? "Saving..."
+      : status === "collection"
+        ? "Add to Collection"
+        : "Add to Wishlist";
 
   return (
     <>
