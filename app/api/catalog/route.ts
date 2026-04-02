@@ -12,22 +12,69 @@ function slugify(...parts: (string | undefined)[]): string {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Safely check if `collection` column exists on watchFamilies.
+ * The other agent is adding it; we gracefully handle its absence.
+ */
+function hasCollectionField(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return "collection" in (schema.watchFamilies as any);
+  } catch {
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/catalog
-//   ?brands=true  -> sorted list of unique brand names
-//   ?fuzzy=rolex+sub -> matching families for "did you mean?"
+//   ?brands=true              -> sorted list of unique brand names
+//   ?fuzzy=rolex+sub          -> matching families for "did you mean?"
+//   ?ref=126610LN&brand=Rolex -> check if a reference exists (dedup)
 // ---------------------------------------------------------------------------
 export async function GET(request: NextRequest) {
   const brandsParam = request.nextUrl.searchParams.get("brands");
   const fuzzyParam = request.nextUrl.searchParams.get("fuzzy");
+  const refParam = request.nextUrl.searchParams.get("ref");
+  const brandParam = request.nextUrl.searchParams.get("brand");
 
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ brands: [], families: [] });
   }
 
   const db = getDb();
+  const collectionExists = hasCollectionField();
 
+  // ------------------------------------------------------------------
+  // Check if a specific reference exists (for dedup in wizard step 4)
+  // ------------------------------------------------------------------
+  if (refParam && brandParam) {
+    try {
+      const [existing] = await db
+        .select({ id: schema.watchReferences.id })
+        .from(schema.watchReferences)
+        .where(
+          and(
+            ilike(schema.watchReferences.reference, refParam.trim()),
+            ilike(schema.watchReferences.brand, brandParam.trim()),
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        return NextResponse.json({
+          exists: true,
+          watchReferenceId: existing.id,
+        });
+      }
+      return NextResponse.json({ exists: false });
+    } catch {
+      return NextResponse.json({ exists: false });
+    }
+  }
+
+  // ------------------------------------------------------------------
   // Return distinct brands for autocomplete
+  // ------------------------------------------------------------------
   if (brandsParam === "true") {
     try {
       const rows = await db
@@ -53,19 +100,30 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fuzzy matching for "did you mean?"
+  // ------------------------------------------------------------------
+  // Fuzzy matching for "did you mean?" — also returns collection field
+  // ------------------------------------------------------------------
   if (fuzzyParam && fuzzyParam.trim().length >= 2) {
     try {
       const pattern = `%${fuzzyParam.trim()}%`;
 
+      // Build select fields dynamically based on whether collection exists
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const selectFields: Record<string, any> = {
+        id: schema.watchFamilies.id,
+        slug: schema.watchFamilies.slug,
+        brand: schema.watchFamilies.brand,
+        model: schema.watchFamilies.model,
+        imageUrl: schema.watchFamilies.imageUrl,
+      };
+
+      if (collectionExists) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        selectFields.collection = (schema.watchFamilies as any).collection;
+      }
+
       const families = await db
-        .select({
-          id: schema.watchFamilies.id,
-          slug: schema.watchFamilies.slug,
-          brand: schema.watchFamilies.brand,
-          model: schema.watchFamilies.model,
-          imageUrl: schema.watchFamilies.imageUrl,
-        })
+        .select(selectFields)
         .from(schema.watchFamilies)
         .where(
           or(
@@ -77,7 +135,7 @@ export async function GET(request: NextRequest) {
             ),
           ),
         )
-        .limit(5);
+        .limit(20);
 
       // Get variation counts
       if (families.length > 0) {
@@ -98,6 +156,7 @@ export async function GET(request: NextRequest) {
 
         const results = families.map((f) => ({
           ...f,
+          collection: collectionExists ? (f as Record<string, unknown>).collection ?? null : null,
           variationCount: countMap.get(f.id) || 0,
         }));
 
@@ -139,9 +198,6 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: count recent community submissions by this user
-  // watchReferences doesn't have createdAt, so we count families created
-  // in the last 24h by checking watchFamilies.createdAt as a proxy,
-  // plus count total references created by this user today via families
   try {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -187,8 +243,10 @@ export async function POST(request: NextRequest) {
     waterResistanceM,
     caseBack,
     shape,
+    color,
     imageUrl,
     description,
+    familyId: providedFamilyId,
   } = body;
 
   // Validate required fields
@@ -213,52 +271,53 @@ export async function POST(request: NextRequest) {
   const trimmedModel = model.trim();
   const trimmedRef = reference.trim();
 
-  // Check for existing family by slug
+  // Check for existing family by slug or by provided familyId
   const familySlug = slugify(trimmedBrand, trimmedModel);
-  let familyId: number | null = null;
+  let familyId: number | null = providedFamilyId ? Number(providedFamilyId) : null;
 
-  try {
-    const [existingFamily] = await db
-      .select()
-      .from(schema.watchFamilies)
-      .where(eq(schema.watchFamilies.slug, familySlug))
-      .limit(1);
-
-    if (existingFamily) {
-      familyId = existingFamily.id;
-    } else {
-      // Also check by brand+model match (case differences, etc.)
-      const [altFamily] = await db
+  if (!familyId) {
+    try {
+      const [existingFamily] = await db
         .select()
         .from(schema.watchFamilies)
-        .where(
-          and(
-            ilike(schema.watchFamilies.brand, trimmedBrand),
-            ilike(schema.watchFamilies.model, trimmedModel),
-          ),
-        )
+        .where(eq(schema.watchFamilies.slug, familySlug))
         .limit(1);
 
-      if (altFamily) {
-        familyId = altFamily.id;
+      if (existingFamily) {
+        familyId = existingFamily.id;
       } else {
-        // Create new family
-        const [newFamily] = await db
-          .insert(schema.watchFamilies)
-          .values({
-            slug: familySlug,
-            brand: trimmedBrand,
-            model: trimmedModel,
-            isCommunitySubmitted: true,
-          })
-          .returning();
+        // Also check by brand+model match (case differences, etc.)
+        const [altFamily] = await db
+          .select()
+          .from(schema.watchFamilies)
+          .where(
+            and(
+              ilike(schema.watchFamilies.brand, trimmedBrand),
+              ilike(schema.watchFamilies.model, trimmedModel),
+            ),
+          )
+          .limit(1);
 
-        familyId = newFamily.id;
+        if (altFamily) {
+          familyId = altFamily.id;
+        } else {
+          // Create new family
+          const [newFamily] = await db
+            .insert(schema.watchFamilies)
+            .values({
+              slug: familySlug,
+              brand: trimmedBrand,
+              model: trimmedModel,
+              isCommunitySubmitted: true,
+            })
+            .returning();
+
+          familyId = newFamily.id;
+        }
       }
+    } catch {
+      familyId = null;
     }
-  } catch {
-    // If families table has issues, continue without family
-    familyId = null;
   }
 
   // Create the watch reference
@@ -276,6 +335,7 @@ export async function POST(request: NextRequest) {
     origin: origin || null,
     crystal: crystal || null,
     material: material || null,
+    color: color || null,
     braceletType: braceletType || null,
     waterResistanceM: waterResistanceM ? parseInt(waterResistanceM) : null,
     caseBack: caseBack || null,

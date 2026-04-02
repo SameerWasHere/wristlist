@@ -1,0 +1,1 @@
+ALTER TABLE "watch_families" ADD COLUMN "collection" text;

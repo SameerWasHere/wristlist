@@ -20,6 +20,7 @@ export const watchFamilies = pgTable(
     slug: text("slug").notNull(),
     brand: text("brand").notNull(),
     model: text("model").notNull(),
+    collection: text("collection"), // e.g. "Submariner", "Speedmaster", "Datejust"
     description: text("description"),
     imageUrl: text("image_url"),
     isCommunitySubmitted: boolean("is_community_submitted")
