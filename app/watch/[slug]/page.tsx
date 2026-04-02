@@ -134,6 +134,52 @@ async function getWishlistersForVariations(variationIds: number[]) {
     );
 }
 
+/**
+ * Safely check if `collection` column exists on watchFamilies.
+ */
+function hasCollectionField(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return "collection" in (schema.watchFamilies as any);
+  } catch {
+    return false;
+  }
+}
+
+async function getCollectionSiblings(
+  brand: string,
+  collection: string | null,
+  excludeFamilyId: number,
+) {
+  if (!collection) return [];
+  const db = getDb();
+  const collectionExists = hasCollectionField();
+  if (!collectionExists) return [];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const collectionCol = (schema.watchFamilies as any).collection;
+    return await db
+      .select({
+        id: schema.watchFamilies.id,
+        slug: schema.watchFamilies.slug,
+        brand: schema.watchFamilies.brand,
+        model: schema.watchFamilies.model,
+        imageUrl: schema.watchFamilies.imageUrl,
+      })
+      .from(schema.watchFamilies)
+      .where(
+        and(
+          eq(collectionCol, collection),
+          eq(schema.watchFamilies.brand, brand),
+          ne(schema.watchFamilies.id, excludeFamilyId),
+        ),
+      )
+      .limit(6);
+  } catch {
+    return [];
+  }
+}
+
 async function getRelatedFamilies(brand: string, excludeFamilyId: number) {
   const db = getDb();
   try {
@@ -300,17 +346,25 @@ async function renderFamilyPage(family: {
   imageUrl: string | null;
   isCommunitySubmitted: boolean;
   createdAt: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }) {
+  // Safely read collection field
+  const collectionName: string | null = hasCollectionField()
+    ? (family as Record<string, unknown>).collection as string | null ?? null
+    : null;
+
   const variations = await getVariationsForFamily(family.id);
   const variationIds = variations.map((v) => v.id);
 
-  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamilies] =
+  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamilies, collectionSiblings] =
     await Promise.all([
       getCollectorCountsPerVariation(variationIds),
       getWishlistCountsPerVariation(variationIds),
       getCollectorsForVariations(variationIds),
       getWishlistersForVariations(variationIds),
       getRelatedFamilies(family.brand, family.id),
+      getCollectionSiblings(family.brand, collectionName, family.id),
     ]);
 
   // Total counts across all variations
@@ -543,6 +597,49 @@ async function renderFamilyPage(family: {
                   className="px-4 py-2 text-[13px] font-medium text-[#8a7a5a] bg-white rounded-full border border-[rgba(26,24,20,0.06)] hover:border-[rgba(138,122,90,0.3)] transition-colors shadow-sm"
                 >
                   {w.displayName || w.username}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Collection Siblings */}
+        {collectionSiblings.length > 0 && collectionName && (
+          <section className="mb-12">
+            <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-1">
+              Also in the {collectionName} Collection
+            </p>
+            <p className="text-[13px] text-[rgba(26,24,20,0.4)] mb-4 font-serif italic">
+              Other models in the {family.brand} {collectionName} family
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {collectionSiblings.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/watch/${r.slug}`}
+                  className="bg-white rounded-[16px] border border-[rgba(138,122,90,0.1)] shadow-[0_2px_12px_rgba(26,24,20,0.03)] overflow-hidden hover:shadow-[0_4px_20px_rgba(26,24,20,0.08)] transition-shadow group"
+                >
+                  <div className="aspect-square bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center overflow-hidden">
+                    {r.imageUrl ? (
+                      <img
+                        src={r.imageUrl}
+                        alt={`${r.brand} ${r.model}`}
+                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <span className="text-[24px] font-bold text-white/10">
+                        {r.brand.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.35)] mb-0.5">
+                      {r.brand}
+                    </p>
+                    <p className="text-[13px] font-semibold text-[#1a1814] truncate">
+                      {r.model}
+                    </p>
+                  </div>
                 </Link>
               ))}
             </div>

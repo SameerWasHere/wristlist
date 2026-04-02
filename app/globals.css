@@ -134,3 +134,19 @@
     @apply font-sans;
   }
 }
+
+/* Wizard step transition */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeSlideIn {
+  animation: fadeSlideIn 0.25s ease-out forwards;
+}
