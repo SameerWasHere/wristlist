@@ -26,18 +26,33 @@ interface CollectionTimelineProps {
   isOwner?: boolean;
 }
 
+function getYear(w: TimelineWatch): number | null {
+  if (w.acquiredDate) {
+    const y = parseInt(w.acquiredDate.split("-")[0]);
+    return isNaN(y) ? null : y;
+  }
+  return w.acquiredYear || null;
+}
+
+function getSortKey(w: TimelineWatch): string {
+  // Use full acquiredDate for precise sorting, fall back to year
+  if (w.acquiredDate) return w.acquiredDate;
+  if (w.acquiredYear) return `${w.acquiredYear}-00-00`;
+  return "0000-00-00";
+}
+
 export function CollectionTimeline({ watches, isOwner }: CollectionTimelineProps) {
-  // Group by acquiredYear, most recent first
+  // Group by year from acquiredDate or acquiredYear, most recent first
   const groups = new Map<string, TimelineWatch[]>();
 
   const dated = watches
-    .filter((w) => w.acquiredYear)
-    .sort((a, b) => b.acquiredYear! - a.acquiredYear!);
+    .filter((w) => getYear(w) !== null)
+    .sort((a, b) => getSortKey(b).localeCompare(getSortKey(a)));
 
-  const undated = watches.filter((w) => !w.acquiredYear);
+  const undated = watches.filter((w) => getYear(w) === null);
 
   for (const watch of dated) {
-    const key = String(watch.acquiredYear);
+    const key = String(getYear(watch));
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(watch);
   }
