@@ -149,6 +149,7 @@ async function getProfileData(username: string) {
     slug: r.watch.slug,
     color: r.watch.color || "default",
     modifications: (r.modifications as string[] | null) || undefined,
+    userWatchId: r.id,
   }));
 
   // Simple wishlist for compact display
@@ -248,70 +249,70 @@ export default async function ProfilePage({
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
         {/* ── Profile Header ─────────────────────────────── */}
-        <div className="relative flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
-          {/* Edit button (owner only) */}
-          {isOwner && (
-            <EditProfileHeader
-              currentDisplayName={displayName}
-              currentBio={user.bio || ""}
-              currentCollectingSince={user.collectingSince || undefined}
-            />
-          )}
-
-          {/* Left: Avatar + name + bio */}
-          <div className="flex items-start gap-4 flex-1">
-            {/* Avatar */}
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={displayName}
-                className="w-[64px] h-[64px] rounded-full object-cover flex-shrink-0 border border-[rgba(26,24,20,0.08)]"
-              />
-            ) : (
-              <div className="w-[64px] h-[64px] rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-[#1a1814] to-[#2a2a30] text-white font-bold text-[24px]">
-                {initial}
-              </div>
-            )}
-
-            <div className="min-w-0">
-              <h1 className="text-[24px] sm:text-[28px] font-black tracking-tighter leading-none mb-0.5">
-                {displayName}
-              </h1>
-              <p className="text-[13px] text-[rgba(26,24,20,0.35)] mb-2">
-                @{user.username}
-                {user.collectingSince && (
-                  <> &middot; Collecting since {user.collectingSince}</>
-                )}
-              </p>
-              {user.bio && (
-                <p className="text-[14px] text-[rgba(26,24,20,0.55)] leading-relaxed max-w-[420px]">
-                  {user.bio}
-                </p>
+        <div className="relative mb-10">
+          <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
+            {/* Left: Avatar + name + bio */}
+            <div className="flex items-start gap-4 flex-1">
+              {/* Avatar */}
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={displayName}
+                  className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full object-cover flex-shrink-0 border border-[rgba(26,24,20,0.08)]"
+                />
+              ) : (
+                <div className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-[#1a1814] to-[#2a2a30] text-white font-bold text-[20px] sm:text-[24px]">
+                  {initial}
+                </div>
               )}
-              {isOwner && !user.bio && (
-                <p className="text-[13px] text-[rgba(26,24,20,0.2)] italic">
-                  Add a bio — tell people about your watch journey
+
+              <div className="min-w-0">
+                <h1 className="text-[22px] sm:text-[28px] font-black tracking-tighter leading-none mb-0.5">
+                  {displayName}
+                </h1>
+                <p className="text-[13px] text-[rgba(26,24,20,0.35)] mb-2">
+                  @{user.username}
+                  {user.collectingSince && (
+                    <> &middot; Collecting since {user.collectingSince}</>
+                  )}
                 </p>
+                {user.bio && (
+                  <p className="text-[14px] text-[rgba(26,24,20,0.55)] leading-relaxed max-w-[420px]">
+                    {user.bio}
+                  </p>
+                )}
+                {isOwner && !user.bio && (
+                  <p className="text-[13px] text-[rgba(26,24,20,0.2)] italic">
+                    Add a bio — tell people about your watch journey
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Right: action buttons */}
+            <div className="flex-shrink-0 flex items-start gap-2">
+              {isOwner ? (
+                <>
+                  <EditProfileHeader
+                    currentDisplayName={displayName}
+                    currentBio={user.bio || ""}
+                    currentCollectingSince={user.collectingSince || undefined}
+                  />
+                  <Link
+                    href="/settings"
+                    className="px-4 py-2 text-[12px] font-semibold border border-[rgba(26,24,20,0.12)] rounded-full text-[rgba(26,24,20,0.5)] hover:border-[rgba(26,24,20,0.25)] hover:text-foreground transition-colors"
+                  >
+                    Settings
+                  </Link>
+                </>
+              ) : (
+                <FollowButton
+                  userId={user.id}
+                  isFollowing={false}
+                  followerCount={followerCount}
+                />
               )}
             </div>
-          </div>
-
-          {/* Right: Follow button (hide on own profile) or Settings link */}
-          <div className="flex-shrink-0 flex items-start gap-3">
-            {isOwner ? (
-              <Link
-                href="/settings"
-                className="px-5 py-2 text-[12px] font-semibold border border-[rgba(26,24,20,0.12)] rounded-full text-[rgba(26,24,20,0.5)] hover:border-[rgba(26,24,20,0.25)] hover:text-foreground transition-colors"
-              >
-                Settings
-              </Link>
-            ) : (
-              <FollowButton
-                userId={user.id}
-                isFollowing={false}
-                followerCount={followerCount}
-              />
-            )}
           </div>
         </div>
 
@@ -367,7 +368,7 @@ export default async function ProfilePage({
               </div>
             </div>
             {collectionRows.length > 0 ? (
-              <CollectionTimeline watches={collectionForTimeline} />
+              <CollectionTimeline watches={collectionForTimeline} isOwner={isOwner} />
             ) : isOwner ? (
               <div className="border border-dashed border-[rgba(26,24,20,0.1)] rounded-[20px] py-12 text-center">
                 <p className="text-[15px] text-[rgba(26,24,20,0.3)] mb-3">Your collection is empty</p>
