@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AddWatchModal } from "@/components/add-watch-modal";
 import { VariationPicker } from "@/components/variation-picker";
+import { AddToCatalogModal } from "@/components/add-to-catalog-modal";
 import type { WatchData } from "@/components/add-watch-modal";
 
 interface SearchResult {
@@ -20,6 +21,7 @@ interface SearchResult {
   color?: string;
   imageUrl?: string | null;
   familyId?: number | null;
+  isCommunitySubmitted?: boolean;
 }
 
 interface FamilyResult {
@@ -50,6 +52,9 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   // Variation picker state
   const [pickerFamily, setPickerFamily] = useState<FamilyResult | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+
+  // Catalog modal state
+  const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestBrand, setRequestBrand] = useState("");
@@ -328,6 +333,9 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                         {result.brand} {result.model}
                       </p>
                       <p className="text-[11px] text-[rgba(26,24,20,0.4)] truncate">
+                        {result.isCommunitySubmitted && (
+                          <span title="Community submitted" className="mr-1">&#128101;</span>
+                        )}
                         {[result.reference, result.category, result.movement]
                           .filter(Boolean)
                           .join(" · ")}
@@ -344,85 +352,19 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
               );
             })}
 
-            {/* Footer — request form */}
+            {/* Footer — add to catalog CTA */}
             <div className="border-t border-[rgba(26,24,20,0.06)] px-5 py-3">
-              {requestSubmitted ? (
-                <p className="text-[12px] text-[#8a7a5a] font-medium text-center">
-                  Request submitted! We&apos;ll review it soon.
-                </p>
-              ) : showRequestForm ? (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!requestBrand.trim() || !requestModel.trim()) return;
-                    setRequestSubmitting(true);
-                    try {
-                      const res = await fetch("/api/watch-requests", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          brand: requestBrand.trim(),
-                          model: requestModel.trim(),
-                        }),
-                      });
-                      if (res.ok) {
-                        setRequestSubmitted(true);
-                        setShowRequestForm(false);
-                      }
-                    } catch {
-                      // silently fail
-                    } finally {
-                      setRequestSubmitting(false);
-                    }
+              <div className="text-center">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    setCatalogOpen(true);
                   }}
-                  className="flex flex-col gap-2"
+                  className="text-[13px] font-medium text-[#8a7a5a] hover:underline"
                 >
-                  <p className="text-[12px] text-[rgba(26,24,20,0.5)] font-medium mb-1">
-                    Request a watch to be added
-                  </p>
-                  <input
-                    type="text"
-                    placeholder="Brand (e.g. Omega)"
-                    value={requestBrand}
-                    onChange={(e) => setRequestBrand(e.target.value)}
-                    className="w-full px-3 py-2 text-[16px] border border-[rgba(26,24,20,0.1)] rounded-[10px] bg-[#f6f4ef] focus:outline-none focus:border-[rgba(138,122,90,0.4)] transition-all"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Model (e.g. Seamaster 300)"
-                    value={requestModel}
-                    onChange={(e) => setRequestModel(e.target.value)}
-                    className="w-full px-3 py-2 text-[16px] border border-[rgba(26,24,20,0.1)] rounded-[10px] bg-[#f6f4ef] focus:outline-none focus:border-[rgba(138,122,90,0.4)] transition-all"
-                    required
-                  />
-                  <div className="flex gap-2 mt-1">
-                    <button
-                      type="submit"
-                      disabled={requestSubmitting}
-                      className="flex-1 py-2 text-[12px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                      {requestSubmitting ? "Submitting..." : "Submit Request"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowRequestForm(false)}
-                      className="px-4 py-2 text-[12px] font-medium text-[rgba(26,24,20,0.4)] hover:text-[rgba(26,24,20,0.6)] transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="text-center">
-                  <button
-                    onClick={() => setShowRequestForm(true)}
-                    className="text-[12px] text-[#8a7a5a] font-medium hover:underline"
-                  >
-                    Don&apos;t see your watch? Request it
-                  </button>
-                </div>
-              )}
+                  Can&apos;t find your watch? <span className="font-semibold">Add it to the catalog</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -512,6 +454,27 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
         </div>
       </div>
 
+      {/* "Can't find" prompt when search is active but few/no results */}
+      {query.length >= 2 && !isLoading && !hasSearchResults && !isOpen && (
+        <div className="w-full max-w-2xl mx-auto mt-4">
+          <div className="bg-[rgba(138,122,90,0.04)] border border-[rgba(138,122,90,0.12)] rounded-[16px] px-5 py-4 text-center">
+            <p className="text-[14px] text-[rgba(26,24,20,0.6)] mb-2">
+              No watches found for &quot;{query}&quot;
+            </p>
+            <button
+              onClick={() => setCatalogOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-[14px] font-semibold text-[#8a7a5a] bg-[#f5f0e3] rounded-full hover:bg-[#ebe4d0] transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add it to the catalog
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Add Watch Modal */}
       {modalWatch !== undefined && (
         <AddWatchModal
@@ -523,6 +486,36 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
           }}
         />
       )}
+
+      {/* Add to Catalog Modal */}
+      <AddToCatalogModal
+        open={catalogOpen}
+        onClose={() => setCatalogOpen(false)}
+        initialBrand={query.split(" ")[0] || ""}
+        initialModel={query.split(" ").slice(1).join(" ") || ""}
+        onCreated={(watchReferenceId) => {
+          setCatalogOpen(false);
+          // Open the add-to-collection modal with the new watch
+          // We need to fetch the watch data first
+          fetch(`/api/watches/search?q=${watchReferenceId}`)
+            .then((r) => r.json())
+            .then((data) => {
+              const variations = data.variations ?? data.results ?? [];
+              const match = variations.find(
+                (v: SearchResult) => v.id === watchReferenceId,
+              );
+              if (match) {
+                openModal(match);
+              } else {
+                // Fallback: just open modal, refresh will pick it up
+                onWatchAdded?.();
+              }
+            })
+            .catch(() => {
+              onWatchAdded?.();
+            });
+        }}
+      />
     </>
   );
 }
