@@ -678,6 +678,29 @@ export default async function ProfilePage({
           </section>
         )}
 
+        {/* -- Collection Insights (owner only) ------------------------ */}
+        {isOwner && hasWatches && (
+          <CollectionInsights
+            archetype={dna.archetype}
+            description={dna.description}
+            tags={dna.tags.map((t) => ({ text: t.text, variant: t.variant }))}
+            score={score}
+            stats={cStats}
+            brands={cBrands}
+            gaps={cGapsHuman}
+            timeline={cTimeline}
+            nbp={
+              topNbp
+                ? {
+                    brand: topNbp.watch.brand,
+                    model: topNbp.watch.model,
+                    gapsFilled: topNbp.gapsFilled,
+                  }
+                : null
+            }
+          />
+        )}
+
         {/* -- Catalog Contributions ----------------------------------- */}
         {catalogEditsCount > 0 && (
           <section className="mb-14">
@@ -709,29 +732,6 @@ export default async function ProfilePage({
               ))}
             </div>
           </section>
-        )}
-
-        {/* -- Collection Insights (owner only) ------------------------ */}
-        {isOwner && hasWatches && (
-          <CollectionInsights
-            archetype={dna.archetype}
-            description={dna.description}
-            tags={dna.tags.map((t) => ({ text: t.text, variant: t.variant }))}
-            score={score}
-            stats={cStats}
-            brands={cBrands}
-            gaps={cGapsHuman}
-            timeline={cTimeline}
-            nbp={
-              topNbp
-                ? {
-                    brand: topNbp.watch.brand,
-                    model: topNbp.watch.model,
-                    gapsFilled: topNbp.gapsFilled,
-                  }
-                : null
-            }
-          />
         )}
 
         {/* -- Collector DNA (subtle bottom section, visitor view) ------- */}
