@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
-function slugify(brand: string, model: string, reference?: string): string {
-  const parts = [brand, model, reference].filter(Boolean);
+function slugify(...parts: (string | undefined)[]): string {
   return parts
+    .filter(Boolean)
     .join("-")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (!brand || !model) {
     return NextResponse.json(
       { error: "Brand and model are required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -41,29 +41,76 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json(
       { error: "setup_required", redirect: "/setup" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
-  // Generate a slug
-  const baseSlug = slugify(brand, model, reference);
-  // Add a small random suffix to avoid collisions
+  const trimmedBrand = brand.trim();
+  const trimmedModel = model.trim();
+  const trimmedRef = reference?.trim() || "";
+
+  // Try to find or create a family for this brand+model
+  let familyId: number | null = null;
+  try {
+    // Look for existing family matching brand+model (case-insensitive via slug)
+    const familySlug = slugify(trimmedBrand, trimmedModel);
+
+    const [existingFamily] = await db
+      .select()
+      .from(schema.watchFamilies)
+      .where(
+        and(
+          eq(schema.watchFamilies.brand, trimmedBrand),
+          eq(schema.watchFamilies.model, trimmedModel),
+        ),
+      )
+      .limit(1);
+
+    if (existingFamily) {
+      familyId = existingFamily.id;
+    } else {
+      // Create a new family
+      const [newFamily] = await db
+        .insert(schema.watchFamilies)
+        .values({
+          slug: `${familySlug}-${Date.now().toString(36)}`,
+          brand: trimmedBrand,
+          model: trimmedModel,
+          isCommunitySubmitted: true,
+        })
+        .returning();
+
+      familyId = newFamily.id;
+    }
+  } catch {
+    // watchFamilies table may not exist yet — continue without family link
+    familyId = null;
+  }
+
+  // Generate a slug for the reference
+  const baseSlug = slugify(trimmedBrand, trimmedModel, trimmedRef);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
+  const insertValues: Record<string, unknown> = {
+    slug,
+    brand: trimmedBrand,
+    model: trimmedModel,
+    reference: trimmedRef,
+    category: category || null,
+    movement: movement || null,
+    sizeMm: sizeMm || null,
+    origin: origin || null,
+    isCommunitySubmitted: true,
+    createdBy: user.id,
+  };
+
+  if (familyId !== null) {
+    insertValues.familyId = familyId;
+  }
 
   const [watch] = await db
     .insert(schema.watchReferences)
-    .values({
-      slug,
-      brand: brand.trim(),
-      model: model.trim(),
-      reference: reference?.trim() || "",
-      category: category || null,
-      movement: movement || null,
-      sizeMm: sizeMm || null,
-      origin: origin || null,
-      isCommunitySubmitted: true,
-      createdBy: user.id,
-    })
+    .values(insertValues as typeof schema.watchReferences.$inferInsert)
     .returning();
 
   return NextResponse.json({ watch }, { status: 201 });

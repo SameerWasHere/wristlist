@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AddWatchModal } from "@/components/add-watch-modal";
+import { VariationPicker } from "@/components/variation-picker";
 import type { WatchData } from "@/components/add-watch-modal";
 
 interface SearchResult {
@@ -18,9 +19,17 @@ interface SearchResult {
   material?: string;
   color?: string;
   imageUrl?: string | null;
+  familyId?: number | null;
 }
 
-// Popular watches fetched from DB on mount (no more hardcoded data)
+interface FamilyResult {
+  id: number;
+  slug: string;
+  brand: string;
+  model: string;
+  imageUrl: string | null;
+  variationCount: number;
+}
 
 interface WatchSearchProps {
   onAdd?: (watch: SearchResult) => void;
@@ -30,11 +39,18 @@ interface WatchSearchProps {
 export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [familyResults, setFamilyResults] = useState<FamilyResult[]>([]);
+  const [popularFamilies, setPopularFamilies] = useState<FamilyResult[]>([]);
   const [popularWatches, setPopularWatches] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalWatch, setModalWatch] = useState<WatchData | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Variation picker state
+  const [pickerFamily, setPickerFamily] = useState<FamilyResult | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestBrand, setRequestBrand] = useState("");
   const [requestModel, setRequestModel] = useState("");
@@ -47,7 +63,6 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   useEffect(() => {
     async function loadPopular() {
       try {
-        // Try to get the user's owned watch reference IDs
         let excludeIds: number[] = [];
         try {
           const colRes = await fetch("/api/collection");
@@ -68,7 +83,15 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
         }
         const res = await fetch(`/api/watches/search?${params.toString()}`);
         const data = await res.json();
-        setPopularWatches(data.results ?? []);
+
+        // Use families if available, otherwise fall back to results
+        if (data.families && data.families.length > 0) {
+          setPopularFamilies(data.families);
+          setPopularWatches([]);
+        } else {
+          setPopularWatches(data.results ?? []);
+          setPopularFamilies([]);
+        }
       } catch {
         // silently fail
       }
@@ -79,6 +102,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   const search = useCallback(async (q: string) => {
     if (q.length < 2) {
       setResults([]);
+      setFamilyResults([]);
       setIsOpen(false);
       return;
     }
@@ -87,7 +111,8 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
       const res = await fetch(`/api/watches/search?q=${encodeURIComponent(q)}`);
       if (res.ok) {
         const data = await res.json();
-        setResults(data.results ?? data ?? []);
+        setResults(data.results ?? data.variations ?? []);
+        setFamilyResults(data.families ?? []);
         setIsOpen(true);
       }
     } catch {
@@ -108,7 +133,37 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
     setModalWatch(watch);
     setModalOpen(true);
     setIsOpen(false);
+    setShowPicker(false);
+    setPickerFamily(null);
     onAdd?.(watch);
+  }
+
+  function handleFamilySelect(family: FamilyResult) {
+    setIsOpen(false);
+    // If family has only 1 variation, skip picker (we'll try to load and check)
+    if (family.variationCount <= 1) {
+      // Fetch the single variation and open modal directly
+      fetch(`/api/watches/variations?familyId=${family.id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const variations = data.variations ?? [];
+          if (variations.length === 1) {
+            openModal(variations[0]);
+          } else {
+            // Show picker anyway (0 or 2+ variations)
+            setPickerFamily(family);
+            setShowPicker(true);
+          }
+        })
+        .catch(() => {
+          // Fallback: show picker
+          setPickerFamily(family);
+          setShowPicker(true);
+        });
+    } else {
+      setPickerFamily(family);
+      setShowPicker(true);
+    }
   }
 
   function closeModal() {
@@ -126,12 +181,62 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // If showing variation picker, render that instead of results
+  if (showPicker && pickerFamily) {
+    return (
+      <>
+        <div className="w-full max-w-2xl mx-auto">
+          <VariationPicker
+            familyId={pickerFamily.id}
+            familyBrand={pickerFamily.brand}
+            familyModel={pickerFamily.model}
+            onSelect={(variation) => {
+              openModal({
+                id: variation.id,
+                brand: variation.brand,
+                model: variation.model,
+                reference: variation.reference,
+                movement: variation.movement || undefined,
+                sizeMm: variation.sizeMm || undefined,
+                material: variation.material || undefined,
+                color: variation.color || undefined,
+                imageUrl: variation.imageUrl,
+              });
+            }}
+            onManualEntry={() => {
+              // Open modal in manual mode with brand/model pre-filled
+              setModalWatch(null);
+              setModalOpen(true);
+              setShowPicker(false);
+              setPickerFamily(null);
+            }}
+            onBack={() => {
+              setShowPicker(false);
+              setPickerFamily(null);
+            }}
+          />
+        </div>
+
+        {/* Add Watch Modal for manual entry */}
+        <AddWatchModal
+          watch={modalWatch}
+          open={modalOpen}
+          onClose={() => {
+            closeModal();
+            onWatchAdded?.();
+          }}
+        />
+      </>
+    );
+  }
+
+  const hasSearchResults = familyResults.length > 0 || results.length > 0;
+
   return (
     <>
       <div ref={containerRef} className="relative w-full max-w-2xl mx-auto">
         {/* Search input */}
         <div className="relative">
-          {/* Magnifying glass icon */}
           <svg
             className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 text-[rgba(26,24,20,0.25)]"
             width="20"
@@ -150,7 +255,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
             type="text"
             value={query}
             onChange={handleChange}
-            onFocus={() => results.length > 0 && setIsOpen(true)}
+            onFocus={() => hasSearchResults && setIsOpen(true)}
             placeholder="Search any watch... Rolex Submariner, Omega Speedmaster..."
             className="w-full pl-10 sm:pl-14 pr-4 sm:pr-5 py-3.5 sm:py-4 text-[16px] bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] focus:outline-none focus:border-[rgba(138,122,90,0.4)] focus:ring-1 focus:ring-[rgba(138,122,90,0.4)] transition-colors placeholder:text-[rgba(26,24,20,0.25)]"
           />
@@ -160,19 +265,64 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
         </div>
 
         {/* Autocomplete dropdown */}
-        {isOpen && results.length > 0 && (
+        {isOpen && hasSearchResults && (
           <div className="absolute top-full mt-2 w-full bg-white rounded-[16px] shadow-[0_12px_48px_rgba(26,24,20,0.12)] border border-[rgba(26,24,20,0.06)] z-50 overflow-hidden">
+            {/* Family results */}
+            {familyResults.map((family, i) => (
+              <div key={`family-${family.id}`}>
+                {i > 0 && <div className="mx-4 border-t border-[rgba(26,24,20,0.06)]" />}
+                <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-3.5 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
+                  {/* Thumb */}
+                  <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {family.imageUrl ? (
+                      <img src={family.imageUrl} alt="" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <span className="text-white/30 text-[14px] font-bold">
+                        {family.brand.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-foreground truncate">
+                      {family.brand} {family.model}
+                    </p>
+                    <p className="text-[11px] text-[rgba(26,24,20,0.4)] truncate">
+                      {family.variationCount} {family.variationCount === 1 ? "variation" : "variations"}
+                    </p>
+                  </div>
+                  {/* Add button */}
+                  <button
+                    onClick={() => handleFamilySelect(family)}
+                    className="flex-shrink-0 px-4 py-1.5 text-[12px] font-semibold text-[#8a7a5a] bg-[#f5f0e3] rounded-full hover:bg-[#ebe4d0] transition-colors"
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Divider between families and variations */}
+            {familyResults.length > 0 && results.length > 0 && (
+              <div className="mx-4 border-t border-[rgba(26,24,20,0.06)]" />
+            )}
+
+            {/* Individual variation results */}
             {results.map((result, i) => {
               const initial = result.brand.charAt(0).toUpperCase();
+              // Skip variations that belong to a family already shown
+              const familyIds = new Set(familyResults.map((f) => f.id));
+              if (result.familyId && familyIds.has(result.familyId)) return null;
+
               return (
-                <div key={`${result.reference}-${i}`}>
-                  {i > 0 && <div className="mx-4 border-t border-[rgba(26,24,20,0.06)]" />}
+                <div key={`ref-${result.id || result.reference}-${i}`}>
+                  {(i > 0 || familyResults.length > 0) && (
+                    <div className="mx-4 border-t border-[rgba(26,24,20,0.06)]" />
+                  )}
                   <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-3.5 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
-                    {/* Thumb */}
                     <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0">
                       <span className="text-white/30 text-[14px] font-bold">{initial}</span>
                     </div>
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-semibold text-foreground truncate">
                         {result.brand} {result.model}
@@ -183,7 +333,6 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                           .join(" · ")}
                       </p>
                     </div>
-                    {/* Add button */}
                     <button
                       onClick={() => openModal(result)}
                       className="flex-shrink-0 px-4 py-1.5 text-[12px] font-semibold text-[#8a7a5a] bg-[#f5f0e3] rounded-full hover:bg-[#ebe4d0] transition-colors"
@@ -194,6 +343,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                 </div>
               );
             })}
+
             {/* Footer — request form */}
             <div className="border-t border-[rgba(26,24,20,0.06)] px-5 py-3">
               {requestSubmitted ? (
@@ -284,15 +434,49 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
           Browse Popular Watches
         </p>
         <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
+          {/* Family-based popular */}
+          {popularFamilies.map((family, i) => (
+            <div key={`pop-family-${family.id}`}>
+              {i > 0 && (
+                <div className="mx-5 border-t border-[rgba(26,24,20,0.06)]" />
+              )}
+              <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
+                <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {family.imageUrl ? (
+                    <img src={family.imageUrl} alt={`${family.brand} ${family.model}`} className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <span className="text-white/30 text-[15px] font-bold">
+                      {family.brand.charAt(0)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-foreground truncate">
+                    {family.brand} {family.model}
+                  </p>
+                  <p className="text-[11px] text-[rgba(26,24,20,0.4)] truncate">
+                    {family.variationCount} {family.variationCount === 1 ? "variation" : "variations"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleFamilySelect(family)}
+                  className="flex-shrink-0 px-4 py-1.5 text-[12px] font-semibold text-[#8a7a5a] bg-[#f5f0e3] rounded-full hover:bg-[#ebe4d0] transition-colors"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Legacy popular watches (fallback) */}
           {popularWatches.map((watch, i) => {
             const initial = watch.brand.charAt(0).toUpperCase();
             return (
               <div key={watch.reference}>
-                {i > 0 && (
+                {(i > 0 || popularFamilies.length > 0) && (
                   <div className="mx-5 border-t border-[rgba(26,24,20,0.06)]" />
                 )}
                 <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 hover:bg-[rgba(26,24,20,0.02)] transition-colors">
-                  {/* Thumb */}
                   <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {watch.imageUrl ? (
                       <img src={watch.imageUrl} alt={`${watch.brand} ${watch.model}`} className="w-full h-full object-contain p-1" />
@@ -300,7 +484,6 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                       <span className="text-white/30 text-[15px] font-bold">{initial}</span>
                     )}
                   </div>
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-foreground truncate">
                       {watch.brand} {watch.model}
@@ -316,7 +499,6 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
                         .join(" · ")}
                     </p>
                   </div>
-                  {/* Add button */}
                   <button
                     onClick={() => openModal(watch)}
                     className="flex-shrink-0 px-4 py-1.5 text-[12px] font-semibold text-[#8a7a5a] bg-[#f5f0e3] rounded-full hover:bg-[#ebe4d0] transition-colors"
@@ -331,7 +513,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
       </div>
 
       {/* Add Watch Modal */}
-      {modalWatch && (
+      {modalWatch !== undefined && (
         <AddWatchModal
           watch={modalWatch}
           open={modalOpen}
