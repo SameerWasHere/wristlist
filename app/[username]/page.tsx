@@ -8,7 +8,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { DnaTags } from "@/components/dna-tags";
 import { CollectionTimeline } from "@/components/collection-timeline";
 import { FollowButton } from "@/components/follow-button";
-import { EditProfileHeader } from "./edit-profile-header";
+import { EditableProfileHeader } from "./edit-profile-header";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
@@ -249,11 +249,18 @@ export default async function ProfilePage({
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
         {/* ── Profile Header ─────────────────────────────── */}
-        <div className="relative mb-10">
-          <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
-            {/* Left: Avatar + name + bio */}
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
+          {/* Left: name, bio, etc — editable for owner */}
+          {isOwner ? (
+            <EditableProfileHeader
+              username={user.username}
+              displayName={displayName}
+              bio={user.bio || ""}
+              collectingSince={user.collectingSince || undefined}
+              avatarUrl={user.avatarUrl || undefined}
+            />
+          ) : (
             <div className="flex items-start gap-4 flex-1">
-              {/* Avatar */}
               {user.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
@@ -265,7 +272,6 @@ export default async function ProfilePage({
                   {initial}
                 </div>
               )}
-
               <div className="min-w-0">
                 <h1 className="text-[22px] sm:text-[28px] font-black tracking-tighter leading-none mb-0.5">
                   {displayName}
@@ -281,39 +287,20 @@ export default async function ProfilePage({
                     {user.bio}
                   </p>
                 )}
-                {isOwner && !user.bio && (
-                  <p className="text-[13px] text-[rgba(26,24,20,0.2)] italic">
-                    Add a bio — tell people about your watch journey
-                  </p>
-                )}
               </div>
             </div>
+          )}
 
-            {/* Right: action buttons */}
-            <div className="flex-shrink-0 flex items-start gap-2">
-              {isOwner ? (
-                <>
-                  <EditProfileHeader
-                    currentDisplayName={displayName}
-                    currentBio={user.bio || ""}
-                    currentCollectingSince={user.collectingSince || undefined}
-                  />
-                  <Link
-                    href="/settings"
-                    className="px-4 py-2 text-[12px] font-semibold border border-[rgba(26,24,20,0.12)] rounded-full text-[rgba(26,24,20,0.5)] hover:border-[rgba(26,24,20,0.25)] hover:text-foreground transition-colors"
-                  >
-                    Settings
-                  </Link>
-                </>
-              ) : (
-                <FollowButton
-                  userId={user.id}
-                  isFollowing={false}
-                  followerCount={followerCount}
-                />
-              )}
+          {/* Follow button — only for visitors */}
+          {!isOwner && (
+            <div className="flex-shrink-0 flex items-start">
+              <FollowButton
+                userId={user.id}
+                isFollowing={false}
+                followerCount={followerCount}
+              />
             </div>
-          </div>
+          )}
         </div>
 
         {/* ── DNA Tags (subtle) ──────────────────────────── */}
