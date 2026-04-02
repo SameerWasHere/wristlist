@@ -117,111 +117,162 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
     activeTier ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   return (
     <>
-      {/* Search */}
-      <div className="mb-5">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Filter by brand or model..."
-          className="w-full px-4 py-3 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[14px] focus:outline-none focus:border-[rgba(138,122,90,0.4)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
-        />
+      {/* Search + Filter bar */}
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 relative">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[rgba(26,24,20,0.2)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search watches..."
+            className="w-full pl-10 pr-4 py-3 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[14px] focus:outline-none focus:border-[rgba(138,122,90,0.4)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+          />
+        </div>
+        <button
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          className={`flex items-center gap-2 px-4 py-3 rounded-[14px] text-[13px] font-medium transition-colors flex-shrink-0 ${
+            activeFilterCount > 0
+              ? "bg-[#8a7a5a] text-white"
+              : "bg-white border border-[rgba(26,24,20,0.08)] text-[rgba(26,24,20,0.5)] hover:border-[rgba(26,24,20,0.15)]"
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
+          </svg>
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Filter rows */}
-      <div className="space-y-3 mb-8">
-        {/* Category */}
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.25)] font-semibold self-center mr-1 w-[60px] flex-shrink-0">Type</span>
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                activeCategory === cat
-                  ? "bg-[#8a7a5a] text-white"
-                  : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.45)] hover:bg-[rgba(26,24,20,0.08)]"
-              }`}
-            >
-              {cat}
+      {/* Active filter chips */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {activeCategory !== "All" && (
+            <button onClick={() => setActiveCategory("All")} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-[rgba(138,122,90,0.1)] text-[#8a7a5a]">
+              {activeCategory} <span className="text-[rgba(138,122,90,0.4)]">&times;</span>
             </button>
-          ))}
-        </div>
-
-        {/* Origin */}
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.25)] font-semibold self-center mr-1 w-[60px] flex-shrink-0">Origin</span>
-          {ORIGINS.map((origin) => (
-            <button
-              key={origin}
-              onClick={() => setActiveOrigin(activeOrigin === origin ? null : origin)}
-              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                activeOrigin === origin
-                  ? "bg-[#8a7a5a] text-white"
-                  : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.45)] hover:bg-[rgba(26,24,20,0.08)]"
-              }`}
-            >
-              {origin}
+          )}
+          {activeOrigin && (
+            <button onClick={() => setActiveOrigin(null)} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-[rgba(138,122,90,0.1)] text-[#8a7a5a]">
+              {activeOrigin} <span className="text-[rgba(138,122,90,0.4)]">&times;</span>
             </button>
-          ))}
-        </div>
-
-        {/* Price tier */}
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.25)] font-semibold self-center mr-1 w-[60px] flex-shrink-0">Price</span>
-          {PRICE_TIERS.map((tier) => (
-            <button
-              key={tier.label}
-              onClick={() => setActiveTier(activeTier?.label === tier.label ? null : tier)}
-              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                activeTier?.label === tier.label
-                  ? "bg-[#8a7a5a] text-white"
-                  : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.45)] hover:bg-[rgba(26,24,20,0.08)]"
-              }`}
-            >
-              {tier.label}
+          )}
+          {activeTier && (
+            <button onClick={() => setActiveTier(null)} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-[rgba(138,122,90,0.1)] text-[#8a7a5a]">
+              {activeTier.label} <span className="text-[rgba(138,122,90,0.4)]">&times;</span>
             </button>
-          ))}
-        </div>
-
-        {/* Brand */}
-        {brands.length > 1 && (
-          <div className="flex flex-wrap gap-1.5">
-            <span className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.25)] font-semibold self-center mr-1 w-[60px] flex-shrink-0">Brand</span>
-            {brands.map((brand) => (
-              <button
-                key={brand}
-                onClick={() => setActiveBrand(activeBrand === brand ? null : brand)}
-                className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                  activeBrand === brand
-                    ? "bg-[#8a7a5a] text-white"
-                    : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.45)] hover:bg-[rgba(26,24,20,0.08)]"
-                }`}
-              >
-                {brand}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Clear filters */}
-        {activeFilterCount > 0 && (
+          )}
+          {activeBrand && (
+            <button onClick={() => setActiveBrand(null)} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-[rgba(138,122,90,0.1)] text-[#8a7a5a]">
+              {activeBrand} <span className="text-[rgba(138,122,90,0.4)]">&times;</span>
+            </button>
+          )}
           <button
-            onClick={() => {
-              setActiveCategory("All");
-              setActiveOrigin(null);
-              setActiveBrand(null);
-              setActiveTier(null);
-              setSearchQuery("");
-            }}
-            className="text-[11px] font-medium text-[#8a7a5a] hover:underline"
+            onClick={() => { setActiveCategory("All"); setActiveOrigin(null); setActiveBrand(null); setActiveTier(null); }}
+            className="text-[11px] text-[rgba(26,24,20,0.3)] hover:text-[rgba(26,24,20,0.5)] transition-colors"
           >
-            Clear all filters ({activeFilterCount})
+            Clear all
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Filter panel (collapsible) */}
+      {filtersOpen && (
+        <div className="bg-white border border-[rgba(26,24,20,0.08)] rounded-[16px] p-5 mb-6 space-y-5">
+          {/* Type */}
+          <div>
+            <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">Type</p>
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                    activeCategory === cat
+                      ? "bg-[#8a7a5a] text-white"
+                      : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)] hover:bg-[rgba(26,24,20,0.08)]"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Origin */}
+          <div>
+            <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">Origin</p>
+            <div className="flex flex-wrap gap-1.5">
+              {ORIGINS.map((origin) => (
+                <button
+                  key={origin}
+                  onClick={() => setActiveOrigin(activeOrigin === origin ? null : origin)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                    activeOrigin === origin
+                      ? "bg-[#8a7a5a] text-white"
+                      : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)] hover:bg-[rgba(26,24,20,0.08)]"
+                  }`}
+                >
+                  {origin}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Price */}
+          <div>
+            <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">Price Range</p>
+            <div className="flex flex-wrap gap-1.5">
+              {PRICE_TIERS.map((tier) => (
+                <button
+                  key={tier.label}
+                  onClick={() => setActiveTier(activeTier?.label === tier.label ? null : tier)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                    activeTier?.label === tier.label
+                      ? "bg-[#8a7a5a] text-white"
+                      : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)] hover:bg-[rgba(26,24,20,0.08)]"
+                  }`}
+                >
+                  {tier.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Brand */}
+          {brands.length > 1 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">Brand</p>
+              <div className="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto">
+                {brands.map((brand) => (
+                  <button
+                    key={brand}
+                    onClick={() => setActiveBrand(activeBrand === brand ? null : brand)}
+                    className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                      activeBrand === brand
+                        ? "bg-[#8a7a5a] text-white"
+                        : "bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)] hover:bg-[rgba(26,24,20,0.08)]"
+                    }`}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Results count + view toggle */}
       <div className="flex items-center justify-between mb-4">
