@@ -480,17 +480,7 @@ export default async function ProfilePage({
           )}
         </div>
 
-        {/* -- DNA Tags (subtle) ---------------------------------------- */}
-        {dna.tags.length > 0 && (
-          <div className="mb-10">
-            <DnaTags
-              tags={dna.tags.map((t) => ({
-                text: t.text,
-                primary: t.variant === "primary",
-              }))}
-            />
-          </div>
-        )}
+        {/* DNA tags removed — now shown in Collection Insights card */}
 
         {/* Add Watch button rendered inside collection header below */}
 
