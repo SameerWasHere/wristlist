@@ -167,9 +167,22 @@ export default async function CatalogPage() {
         <h1 className="font-serif italic text-[28px] sm:text-[36px] text-foreground tracking-tight mb-1">
           Discover
         </h1>
-        <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-8">
+        <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-4">
           {families.length} watches cataloged by {stats.contributorCount} contributor{stats.contributorCount !== 1 ? "s" : ""} across {new Set(families.map(f => f.brand)).size} brands.
         </p>
+
+        {/* Community explanation */}
+        <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[16px] p-4 sm:p-5 mb-8">
+          <div className="flex gap-3 items-start">
+            <span className="text-[20px] flex-shrink-0">👥</span>
+            <div>
+              <p className="text-[13px] text-[rgba(26,24,20,0.6)] leading-relaxed">
+                <strong className="text-[#1a1814] font-semibold">WristList is built by collectors, for collectors.</strong>{" "}
+                Every watch page is created and maintained by the community. You can edit any watch&apos;s details, add new variations, or catalog a watch that&apos;s missing. All contributions are tracked and credited to you.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <CatalogGrid families={families} />
 
