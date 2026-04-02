@@ -34,6 +34,8 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const clerk = useClerk();
   const [status, setStatus] = useState<"collection" | "wishlist">("collection");
   const [modelYear, setModelYear] = useState("");
+  const [acquiredMonth, setAcquiredMonth] = useState("");
+  const [acquiredDay, setAcquiredDay] = useState("");
   const [acquiredYear, setAcquiredYear] = useState("");
   const [milestone, setMilestone] = useState("");
   const [caption, setCaption] = useState("");
@@ -108,6 +110,8 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const resetForm = useCallback(() => {
     setStatus("collection");
     setModelYear("");
+    setAcquiredMonth("");
+    setAcquiredDay("");
     setAcquiredYear("");
     setMilestone("");
     setCaption("");
@@ -193,7 +197,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
           body: JSON.stringify({
             watchReferenceId: watchToAdd.id,
             modelYear: modelYear ? parseInt(modelYear) : undefined,
-            acquiredYear: acquiredYear ? parseInt(acquiredYear) : undefined,
+            acquiredDate: acquiredYear ? `${acquiredYear}-${(acquiredMonth || "01").padStart(2, "0")}-${(acquiredDay || "01").padStart(2, "0")}` : undefined,
             milestone: milestone || undefined,
             caption: caption || undefined,
             photos: photos.length > 0 ? photos : undefined,
@@ -589,15 +593,39 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                   className={inputClass}
                 />
               </div>
-              <div>
-                <label className={labelClass}>
-                  Year Acquired
-                </label>
+            </div>
+
+            {/* Date Acquired */}
+            <div className="mb-5">
+              <label className={labelClass}>
+                Date Acquired <span className="text-[rgba(26,24,20,0.2)] normal-case tracking-normal">(optional)</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={acquiredMonth}
+                  onChange={(e) => setAcquiredMonth(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Month</option>
+                  {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                    <option key={m} value={String(i + 1)}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={acquiredDay}
+                  onChange={(e) => setAcquiredDay(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   value={acquiredYear}
                   onChange={(e) => setAcquiredYear(e.target.value)}
-                  placeholder="e.g. 2023"
+                  placeholder="Year"
                   min={1900}
                   max={2099}
                   className={inputClass}

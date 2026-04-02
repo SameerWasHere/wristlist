@@ -100,7 +100,8 @@ export const userWatches = pgTable("user_watches", {
   status: text("status", { enum: ["collection", "wishlist"] }).notNull(),
   modelYear: integer("model_year"),
   modifications: jsonb("modifications").$type<string[]>(),
-  acquiredYear: integer("acquired_year"),
+  acquiredYear: integer("acquired_year"), // legacy, kept for backward compat
+  acquiredDate: text("acquired_date"), // "YYYY-MM-DD" format for full date
   milestone: text("milestone"), // e.g. "Wedding gift", "Graduation 2019", "First bonus"
   notes: text("notes"),
   caption: text("caption"),

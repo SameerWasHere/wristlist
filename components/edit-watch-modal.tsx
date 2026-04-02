@@ -18,6 +18,7 @@ interface EditWatchModalProps {
   currentMilestone?: string;
   currentModelYear?: number;
   currentAcquiredYear?: number;
+  currentAcquiredDate?: string; // "YYYY-MM-DD"
   currentModifications?: string[];
   currentPhotos?: string[];
   currentStatus: "collection" | "wishlist";
@@ -38,13 +39,19 @@ export function EditWatchModal({
   currentMilestone,
   currentModelYear,
   currentAcquiredYear,
+  currentAcquiredDate,
   currentModifications,
   currentPhotos,
   currentStatus,
 }: EditWatchModalProps) {
+  // Parse acquiredDate into parts
+  const parsedDate = currentAcquiredDate ? currentAcquiredDate.split("-") : [];
+
   const [status, setStatus] = useState<"collection" | "wishlist">(currentStatus);
   const [modelYear, setModelYear] = useState(currentModelYear ? String(currentModelYear) : "");
-  const [acquiredYear, setAcquiredYear] = useState(currentAcquiredYear ? String(currentAcquiredYear) : "");
+  const [acquiredMonth, setAcquiredMonth] = useState(parsedDate[1] ? String(parseInt(parsedDate[1])) : "");
+  const [acquiredDay, setAcquiredDay] = useState(parsedDate[2] ? String(parseInt(parsedDate[2])) : "");
+  const [acquiredYear, setAcquiredYear] = useState(parsedDate[0] || (currentAcquiredYear ? String(currentAcquiredYear) : ""));
   const [milestone, setMilestone] = useState(currentMilestone || "");
   const [caption, setCaption] = useState(currentCaption || "");
   const [photos, setPhotos] = useState<string[]>(currentPhotos || []);
@@ -131,6 +138,7 @@ export function EditWatchModal({
           milestone: milestone || "",
           modelYear: modelYear ? parseInt(modelYear) : null,
           acquiredYear: acquiredYear ? parseInt(acquiredYear) : null,
+          acquiredDate: acquiredYear ? `${acquiredYear}-${(acquiredMonth || "01").padStart(2, "0")}-${(acquiredDay || "01").padStart(2, "0")}` : null,
           modifications: mods,
           photos,
           status,
@@ -320,13 +328,39 @@ export function EditWatchModal({
                   className={inputClass}
                 />
               </div>
-              <div>
-                <label className={labelClass}>Year Acquired</label>
+            </div>
+
+            {/* Date Acquired */}
+            <div className="mb-5">
+              <label className={labelClass}>
+                Date Acquired <span className="text-[rgba(26,24,20,0.2)] normal-case tracking-normal">(optional)</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={acquiredMonth}
+                  onChange={(e) => setAcquiredMonth(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Month</option>
+                  {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                    <option key={m} value={String(i + 1)}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={acquiredDay}
+                  onChange={(e) => setAcquiredDay(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   value={acquiredYear}
                   onChange={(e) => setAcquiredYear(e.target.value)}
-                  placeholder="e.g. 2023"
+                  placeholder="Year"
                   min={1900}
                   max={2099}
                   className={inputClass}

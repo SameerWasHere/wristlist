@@ -1,0 +1,1 @@
+ALTER TABLE "user_watches" ADD COLUMN "acquired_date" text;

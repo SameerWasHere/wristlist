@@ -29,6 +29,7 @@ export async function PATCH(request: NextRequest) {
   if (body.milestone !== undefined) updates.milestone = body.milestone || null;
   if (body.modelYear !== undefined) updates.modelYear = body.modelYear || null;
   if (body.acquiredYear !== undefined) updates.acquiredYear = body.acquiredYear || null;
+  if (body.acquiredDate !== undefined) updates.acquiredDate = body.acquiredDate || null;
   if (body.modifications !== undefined) updates.modifications = body.modifications || [];
   if (body.photos !== undefined) updates.photos = body.photos || [];
   if (body.status !== undefined && (body.status === "collection" || body.status === "wishlist")) {

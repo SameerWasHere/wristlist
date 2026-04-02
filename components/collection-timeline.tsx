@@ -11,6 +11,7 @@ interface TimelineWatch {
   caption?: string;
   milestone?: string;
   acquiredYear?: number;
+  acquiredDate?: string;
   modelYear?: number;
   photos?: string[];
   imageUrl?: string;

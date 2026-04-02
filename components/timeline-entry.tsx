@@ -29,6 +29,7 @@ interface TimelineEntryProps {
   caption?: string;
   milestone?: string;
   acquiredYear?: number;
+  acquiredDate?: string; // "YYYY-MM-DD"
   modelYear?: number;
   photos?: string[];
   imageUrl?: string;
@@ -51,6 +52,7 @@ export function TimelineEntry({
   caption,
   milestone,
   acquiredYear,
+  acquiredDate,
   modelYear,
   photos,
   imageUrl,
@@ -71,8 +73,19 @@ export function TimelineEntry({
     (s) => s && s !== "0mm"
   );
 
+  // Format acquired date as "Month Year" (e.g. "March 2024")
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  let acquiredDisplay: string | null = null;
+  if (acquiredDate) {
+    const [y, m] = acquiredDate.split("-");
+    const monthIdx = parseInt(m) - 1;
+    acquiredDisplay = `Acquired ${monthNames[monthIdx] || ""} ${y}`.trim();
+  } else if (acquiredYear) {
+    acquiredDisplay = `Acquired ${acquiredYear}`;
+  }
+
   const yearInfo = [
-    acquiredYear ? `Acquired ${acquiredYear}` : null,
+    acquiredDisplay,
     modelYear ? `${modelYear} model` : null,
   ].filter(Boolean).join(" · ");
 
@@ -213,6 +226,7 @@ export function TimelineEntry({
           currentMilestone={milestone}
           currentModelYear={modelYear}
           currentAcquiredYear={acquiredYear}
+          currentAcquiredDate={acquiredDate}
           currentModifications={modifications}
           currentPhotos={photos}
           currentStatus={status}
