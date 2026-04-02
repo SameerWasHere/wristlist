@@ -26,6 +26,10 @@ export const watchFamilies = pgTable(
     isCommunitySubmitted: boolean("is_community_submitted")
       .default(false)
       .notNull(),
+    createdBy: integer("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    updatedBy: integer("updated_by").references(() => users.id),
+    editCount: integer("edit_count").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [uniqueIndex("watch_families_slug_idx").on(table.slug)],
@@ -60,12 +64,30 @@ export const watchReferences = pgTable(
     imageUrl: text("image_url"),
     familyId: integer("family_id").references(() => watchFamilies.id),
     createdBy: integer("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    updatedBy: integer("updated_by").references(() => users.id),
+    editCount: integer("edit_count").default(0).notNull(),
     isCommunitySubmitted: boolean("is_community_submitted")
       .default(false)
       .notNull(),
   },
   (table) => [uniqueIndex("watch_references_slug_idx").on(table.slug)],
 );
+
+// ---------------------------------------------------------------------------
+// catalog_edits — tracks all community contributions and changes
+// ---------------------------------------------------------------------------
+export const catalogEdits = pgTable("catalog_edits", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  targetType: text("target_type").notNull(), // 'family' or 'reference'
+  targetId: integer("target_id").notNull(),
+  action: text("action").notNull(), // 'create', 'edit', 'add_variation', 'add_image'
+  fieldChanged: text("field_changed"),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // ---------------------------------------------------------------------------
 // users — Clerk-authenticated users
