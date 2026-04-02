@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const blob = await put(
       `watches/${userId}/${Date.now()}-${file.name}`,
       file,
-      { access: "private" }
+      { access: "public" }
     );
 
     return NextResponse.json({ url: blob.url });
