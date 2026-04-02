@@ -385,6 +385,14 @@ export default async function Home() {
               <TopList title="Most Wishlisted" subtitle="On everyone's radar" items={mostWishlisted} />
             )}
           </div>
+          <div className="mt-6 text-center">
+            <Link
+              href="/catalog"
+              className="text-[13px] font-medium text-[#8a7a5a] hover:underline"
+            >
+              Browse full catalog &rarr;
+            </Link>
+          </div>
         </section>
       )}
 

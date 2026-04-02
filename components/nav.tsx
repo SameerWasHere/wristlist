@@ -39,6 +39,12 @@ export function Nav() {
             Top Lists
           </Link>
           <Link
+            href="/catalog"
+            className="px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
+          >
+            Catalog
+          </Link>
+          <Link
             href="/tools"
             className="px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
           >
