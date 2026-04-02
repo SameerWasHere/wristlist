@@ -11,6 +11,26 @@ import {
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
+// watch_families — groups of related watch references (e.g. "Rolex Submariner")
+// ---------------------------------------------------------------------------
+export const watchFamilies = pgTable(
+  "watch_families",
+  {
+    id: serial("id").primaryKey(),
+    slug: text("slug").notNull(),
+    brand: text("brand").notNull(),
+    model: text("model").notNull(),
+    description: text("description"),
+    imageUrl: text("image_url"),
+    isCommunitySubmitted: boolean("is_community_submitted")
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("watch_families_slug_idx").on(table.slug)],
+);
+
+// ---------------------------------------------------------------------------
 // watch_references — the canonical catalog of watch models
 // ---------------------------------------------------------------------------
 export const watchReferences = pgTable(
@@ -37,6 +57,7 @@ export const watchReferences = pgTable(
     retailPrice: integer("retail_price"),
     description: text("description"),
     imageUrl: text("image_url"),
+    familyId: integer("family_id").references(() => watchFamilies.id),
     createdBy: integer("created_by").references(() => users.id),
     isCommunitySubmitted: boolean("is_community_submitted")
       .default(false)
