@@ -30,7 +30,7 @@ function gapColor(current: number, total: number): string {
 }
 
 export function CollectionInsights({ score, topNbp, topGaps }: CollectionInsightsProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   return (
     <section className="mb-14">
