@@ -542,6 +542,8 @@ async function renderFamilyPage(family: {
                         <CatalogImageUpload
                           referenceId={v.id}
                           currentImageUrl={v.imageUrl}
+                          brand={v.brand}
+                          model={v.model}
                         />
                       )}
                     </div>
