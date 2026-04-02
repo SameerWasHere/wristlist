@@ -368,3 +368,291 @@ export function radarData(
 
 // Re-export collectValues for use by gapCount callers
 export { collectValues };
+
+// ---------------------------------------------------------------------------
+// Extended types
+// ---------------------------------------------------------------------------
+
+export interface ExtendedWatch extends AnalyticsWatch {
+  sizeMm?: number;
+  complications?: string[];
+  material?: string;
+  acquiredYear?: number;
+  acquiredDate?: string;
+}
+
+// ---------------------------------------------------------------------------
+// 7. collectionStats
+// ---------------------------------------------------------------------------
+
+export interface CollectionStatsResult {
+  watchCount: number;
+  averageSizeMm: number | null;
+  sizeLabel: string;
+  mechanicalPercent: number;
+  waterReadyPercent: number;
+  brandCount: number;
+  topBrand: string;
+  brandConcentration: number;
+  complicationsList: string[];
+  topCategory: string;
+  topOrigin: string;
+  topMovement: string;
+}
+
+export function collectionStats(watches: ExtendedWatch[]): CollectionStatsResult {
+  if (watches.length === 0) {
+    return {
+      watchCount: 0,
+      averageSizeMm: null,
+      sizeLabel: "",
+      mechanicalPercent: 0,
+      waterReadyPercent: 0,
+      brandCount: 0,
+      topBrand: "",
+      brandConcentration: 0,
+      complicationsList: [],
+      topCategory: "",
+      topOrigin: "",
+      topMovement: "",
+    };
+  }
+
+  const total = watches.length;
+
+  // Average size
+  const sizes = watches.map((w) => w.sizeMm).filter((s): s is number => s != null && s > 0);
+  const averageSizeMm = sizes.length > 0 ? Math.round((sizes.reduce((a, b) => a + b, 0) / sizes.length) * 10) / 10 : null;
+  let sizeLabel = "";
+  if (averageSizeMm !== null) {
+    if (averageSizeMm < 38) sizeLabel = "compact";
+    else if (averageSizeMm <= 42) sizeLabel = "classic";
+    else sizeLabel = "bold";
+  }
+
+  // Mechanical %
+  const mechanicalCount = watches.filter((w) => {
+    const m = w.movement?.toLowerCase() ?? "";
+    return m === "automatic" || m === "manual wind";
+  }).length;
+  const mechanicalPercent = Math.round((mechanicalCount / total) * 100);
+
+  // Water ready %
+  const waterReadyCount = watches.filter((w) => (w.water_resistance_m ?? 0) >= 200).length;
+  const waterReadyPercent = Math.round((waterReadyCount / total) * 100);
+
+  // Brands
+  const brandCounts: Record<string, number> = {};
+  for (const w of watches) {
+    const b = w.brand || "";
+    brandCounts[b] = (brandCounts[b] || 0) + 1;
+  }
+  const brandEntries = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]);
+  const brandCount = brandEntries.length;
+  const topBrand = brandEntries[0]?.[0] ?? "";
+  const brandConcentration = brandEntries.length > 0 ? Math.round((brandEntries[0][1] / total) * 100) : 0;
+
+  // Complications
+  const compsSet = new Set<string>();
+  for (const w of watches) {
+    if (w.complications) {
+      for (const c of w.complications) {
+        if (c) compsSet.add(c.toLowerCase());
+      }
+    }
+  }
+  const complicationsList = Array.from(compsSet).sort();
+
+  // Top category, origin, movement
+  const topCategory = mode(watches.map((w) => w.category?.toLowerCase() ?? "").filter(Boolean));
+  const topOrigin = mode(watches.map((w) => w.origin?.toLowerCase() ?? "").filter(Boolean));
+  const topMovement = mode(watches.map((w) => w.movement?.toLowerCase() ?? "").filter(Boolean));
+
+  return {
+    watchCount: total,
+    averageSizeMm,
+    sizeLabel,
+    mechanicalPercent,
+    waterReadyPercent,
+    brandCount,
+    topBrand,
+    brandConcentration,
+    complicationsList,
+    topCategory,
+    topOrigin,
+    topMovement,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 8. brandBreakdown
+// ---------------------------------------------------------------------------
+
+export interface BrandBreakdownItem {
+  brand: string;
+  count: number;
+  percent: number;
+}
+
+export function brandBreakdown(watches: ExtendedWatch[]): BrandBreakdownItem[] {
+  if (watches.length === 0) return [];
+  const total = watches.length;
+  const counts: Record<string, number> = {};
+  for (const w of watches) {
+    const b = w.brand || "Unknown";
+    counts[b] = (counts[b] || 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([brand, count]) => ({
+      brand,
+      count,
+      percent: Math.round((count / total) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// ---------------------------------------------------------------------------
+// 9. collectionGapsHuman
+// ---------------------------------------------------------------------------
+
+export function collectionGapsHuman(watches: ExtendedWatch[]): string[] {
+  if (watches.length === 0) return [];
+
+  const gaps: string[] = [];
+
+  const categories = new Set(watches.map((w) => w.category?.toLowerCase()).filter(Boolean));
+  const movements = new Set(watches.map((w) => w.movement?.toLowerCase()).filter(Boolean));
+  const origins = new Set(watches.map((w) => w.origin?.toLowerCase()).filter(Boolean));
+  const bracelets = new Set(watches.map((w) => w.bracelet_type?.toLowerCase()).filter(Boolean));
+  const sizes = watches.map((w) => w.sizeMm).filter((s): s is number => s != null && s > 0);
+
+  const topOriginVal = mode(watches.map((w) => w.origin?.toLowerCase() ?? "").filter(Boolean));
+
+  // Chronograph
+  if (!categories.has("chronograph")) {
+    gaps.push("A chronograph -- add a timing complication to your collection");
+  }
+
+  // Dress
+  if (!categories.has("dress")) {
+    gaps.push("A dress watch -- something for formal occasions");
+  }
+
+  // Travel watch
+  if (!categories.has("gmt") && !categories.has("digital")) {
+    gaps.push("A travel watch -- GMT or world time for the road");
+  }
+
+  // Missing origins
+  const knownOrigins = ["swiss", "japanese", "german", "american", "chinese"];
+  for (const o of knownOrigins) {
+    if (!origins.has(o) && o !== topOriginVal?.toLowerCase()) {
+      const label = o.charAt(0).toUpperCase() + o.slice(1);
+      gaps.push(`Something ${label} -- explore beyond ${topOriginVal || "your current favorites"}`);
+      break;
+    }
+  }
+
+  // Same size
+  if (sizes.length >= 2) {
+    const avg = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+    const allSame = sizes.every((s) => Math.abs(s - avg) <= 2);
+    if (allSame) {
+      const direction = avg <= 40 ? "larger" : "smaller";
+      gaps.push(`A different size -- your average is ${Math.round(avg)}mm, try something ${direction}`);
+    }
+  }
+
+  // Manual wind
+  if (!movements.has("manual wind")) {
+    gaps.push("A manual wind -- feel the mechanical connection");
+  }
+
+  // Same bracelet type
+  if (bracelets.size === 1) {
+    const current = Array.from(bracelets)[0];
+    const suggestions = ["leather strap", "rubber strap", "nato strap", "steel bracelet", "mesh bracelet"];
+    const alt = suggestions.find((s) => s !== current) || "something different";
+    gaps.push(`A different strap -- try ${alt} for variety`);
+  }
+
+  // Return top 3-5
+  return gaps.slice(0, 5);
+}
+
+// ---------------------------------------------------------------------------
+// 10. timelineStats
+// ---------------------------------------------------------------------------
+
+export interface TimelineStatsResult {
+  oldestYear: number | null;
+  newestYear: number | null;
+  totalYears: number | null;
+  watchesPerYear: number | null;
+  mostActiveYear: { year: number; count: number } | null;
+  latestAddition: { brand: string; model: string; year: number } | null;
+}
+
+export function timelineStats(watches: ExtendedWatch[]): TimelineStatsResult {
+  const empty: TimelineStatsResult = {
+    oldestYear: null,
+    newestYear: null,
+    totalYears: null,
+    watchesPerYear: null,
+    mostActiveYear: null,
+    latestAddition: null,
+  };
+
+  if (watches.length === 0) return empty;
+
+  // Extract years from acquiredYear or acquiredDate
+  const withYears = watches
+    .map((w) => {
+      let year: number | null = w.acquiredYear ?? null;
+      if (!year && w.acquiredDate) {
+        const parsed = parseInt(w.acquiredDate.substring(0, 4), 10);
+        if (!isNaN(parsed) && parsed > 1900) year = parsed;
+      }
+      return { watch: w, year };
+    })
+    .filter((x): x is { watch: ExtendedWatch; year: number } => x.year !== null);
+
+  if (withYears.length === 0) return empty;
+
+  const years = withYears.map((x) => x.year);
+  const oldestYear = Math.min(...years);
+  const newestYear = Math.max(...years);
+  const totalYears = newestYear - oldestYear + 1;
+  const watchesPerYear = totalYears > 0 ? Math.round((withYears.length / totalYears) * 10) / 10 : null;
+
+  // Most active year
+  const yearCounts: Record<number, number> = {};
+  for (const y of years) {
+    yearCounts[y] = (yearCounts[y] || 0) + 1;
+  }
+  const sortedYears = Object.entries(yearCounts).sort((a, b) => Number(b[1]) - Number(a[1]));
+  const mostActiveYear = sortedYears[0]
+    ? { year: Number(sortedYears[0][0]), count: sortedYears[0][1] }
+    : null;
+
+  // Latest addition
+  const sorted = [...withYears].sort((a, b) => {
+    // Sort by date string if available, otherwise by year
+    const dateA = a.watch.acquiredDate || String(a.year);
+    const dateB = b.watch.acquiredDate || String(b.year);
+    return dateB.localeCompare(dateA);
+  });
+  const latest = sorted[0];
+  const latestAddition = latest
+    ? { brand: latest.watch.brand, model: latest.watch.model, year: latest.year }
+    : null;
+
+  return {
+    oldestYear,
+    newestYear,
+    totalYears,
+    watchesPerYear,
+    mostActiveYear,
+    latestAddition,
+  };
+}

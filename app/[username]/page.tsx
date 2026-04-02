@@ -20,7 +20,12 @@ import {
   gapAnalysis,
   personality,
   nextBestPurchase,
+  collectionStats,
+  brandBreakdown,
+  collectionGapsHuman,
+  timelineStats,
   type AnalyticsWatch,
+  type ExtendedWatch,
 } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
@@ -224,10 +229,26 @@ async function getProfileData(username: string) {
     toAnalyticsWatch(r.watch)
   );
 
+  // Extended watches for new analytics
+  const collectionExtended: ExtendedWatch[] = collectionRows.map((r) => ({
+    ...toAnalyticsWatch(r.watch),
+    sizeMm: r.watch.sizeMm ?? undefined,
+    complications: (r.watch.complications as string[] | null) ?? undefined,
+    material: r.watch.material ?? undefined,
+    acquiredYear: r.acquiredYear ?? undefined,
+    acquiredDate: r.acquiredDate ?? undefined,
+  }));
+
   const score = diversityScore(collectionAnalytics);
   const dna = personality(collectionAnalytics);
   const nbp = nextBestPurchase(collectionAnalytics, wishlistAnalytics);
   const gaps = gapAnalysis(collectionAnalytics, wishlistAnalytics);
+
+  // New analytics
+  const cStats = collectionStats(collectionExtended);
+  const cBrands = brandBreakdown(collectionExtended);
+  const cGapsHuman = collectionGapsHuman(collectionExtended);
+  const cTimeline = timelineStats(collectionExtended);
 
   // Top 3 worst gaps (by coverage % ascending)
   const topGaps = [...gaps]
@@ -303,6 +324,10 @@ async function getProfileData(username: string) {
     nbp,
     gaps,
     topGaps,
+    cStats,
+    cBrands,
+    cGapsHuman,
+    cTimeline,
     collectionForTimeline,
     wishlistCompact,
     rankedWishlist,
@@ -371,6 +396,10 @@ export default async function ProfilePage({
     dna,
     nbp,
     topGaps,
+    cStats,
+    cBrands,
+    cGapsHuman,
+    cTimeline,
     collectionForTimeline,
     wishlistCompact,
     rankedWishlist,
@@ -682,11 +711,18 @@ export default async function ProfilePage({
           </section>
         )}
 
-        {/* -- Collection Insights (owner only, collapsible) ------------ */}
+        {/* -- Collection Insights (owner only) ------------------------ */}
         {isOwner && hasWatches && (
           <CollectionInsights
+            archetype={dna.archetype}
+            description={dna.description}
+            tags={dna.tags.map((t) => ({ text: t.text, variant: t.variant }))}
             score={score}
-            topNbp={
+            stats={cStats}
+            brands={cBrands}
+            gaps={cGapsHuman}
+            timeline={cTimeline}
+            nbp={
               topNbp
                 ? {
                     brand: topNbp.watch.brand,
@@ -695,12 +731,6 @@ export default async function ProfilePage({
                   }
                 : null
             }
-            topGaps={topGaps.map((g) => ({
-              dimension: g.dimension,
-              label: g.label,
-              owned: g.owned,
-              total: g.total,
-            }))}
           />
         )}
 
