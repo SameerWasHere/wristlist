@@ -1,12 +1,12 @@
 import { Nav } from "@/components/nav";
 import { TopList } from "@/components/top-list";
 import { CollectorCard } from "@/components/collector-card";
-import { CtaBanner } from "@/components/cta-banner";
-// Watch tools moved to /tools page
 import { HeroSection } from "./hero-section";
 import { getDb, schema } from "@/lib/db";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, gte } from "drizzle-orm";
 import { personality, diversityScore, type AnalyticsWatch } from "@/lib/analytics";
+import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,6 @@ async function getTopLists() {
   try {
     const db = getDb();
 
-    // Most collected: watches with the most user_watches entries where status = 'collection'
     const collected = await db
       .select({
         watchId: schema.watchReferences.id,
@@ -35,9 +34,8 @@ async function getTopLists() {
       .where(eq(schema.userWatches.status, "collection"))
       .groupBy(schema.watchReferences.id)
       .orderBy(desc(sql`count(${schema.userWatches.id})`))
-      .limit(5);
+      .limit(3);
 
-    // Most wishlisted: watches with the most user_watches entries where status = 'wishlist'
     const wishlisted = await db
       .select({
         watchId: schema.watchReferences.id,
@@ -54,7 +52,7 @@ async function getTopLists() {
       .where(eq(schema.userWatches.status, "wishlist"))
       .groupBy(schema.watchReferences.id)
       .orderBy(desc(sql`count(${schema.userWatches.id})`))
-      .limit(5);
+      .limit(3);
 
     const toItems = (rows: typeof collected) =>
       rows.map((w, i) => ({
@@ -77,7 +75,6 @@ async function getFeaturedCollectors() {
   try {
     const db = getDb();
 
-    // Get users who have at least 1 watch, ordered by most watches
     const usersWithCounts = await db
       .select({
         userId: schema.users.id,
@@ -92,7 +89,6 @@ async function getFeaturedCollectors() {
       .orderBy(desc(sql`count(${schema.userWatches.id})`))
       .limit(6);
 
-    // For each user, get their watches and run analytics
     const collectors = await Promise.all(
       usersWithCounts.map(async (u) => {
         const watches = await db
@@ -144,8 +140,10 @@ async function getRecentActivity() {
       .select({
         userName: schema.users.displayName,
         username: schema.users.username,
+        avatarUrl: schema.users.avatarUrl,
         status: schema.userWatches.status,
         caption: schema.userWatches.caption,
+        photos: schema.userWatches.photos,
         brand: schema.watchReferences.brand,
         model: schema.watchReferences.model,
         slug: schema.watchReferences.slug,
@@ -156,25 +154,54 @@ async function getRecentActivity() {
       .innerJoin(schema.users, eq(schema.userWatches.userId, schema.users.id))
       .innerJoin(schema.watchReferences, eq(schema.userWatches.watchReferenceId, schema.watchReferences.id))
       .orderBy(desc(schema.userWatches.dateAdded))
-      .limit(8);
+      .limit(12);
 
     return recent.map((r) => {
       const name = r.userName || r.username;
       const action = r.status === "collection" ? "added" : "wishlisted";
       const watch = `${r.brand} ${r.model}`;
       const ago = timeAgo(r.dateAdded);
+      const userPhoto = r.photos && r.photos.length > 0 ? r.photos[0] : null;
       return {
         user: name,
         username: r.username,
+        avatarUrl: r.avatarUrl,
         initial: name.charAt(0),
         action,
         watch,
         slug: r.slug,
         caption: r.caption,
-        imageUrl: r.imageUrl,
+        imageUrl: userPhoto || r.imageUrl,
         time: ago,
       };
     });
+  } catch {
+    return [];
+  }
+}
+
+async function getTrendingWatches() {
+  try {
+    const db = getDb();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const trending = await db
+      .select({
+        watchId: schema.watchReferences.id,
+        brand: schema.watchReferences.brand,
+        model: schema.watchReferences.model,
+        slug: schema.watchReferences.slug,
+        imageUrl: schema.watchReferences.imageUrl,
+        count: sql<number>`count(${schema.userWatches.id})::int`,
+      })
+      .from(schema.userWatches)
+      .innerJoin(schema.watchReferences, eq(schema.userWatches.watchReferenceId, schema.watchReferences.id))
+      .where(gte(schema.userWatches.dateAdded, sevenDaysAgo))
+      .groupBy(schema.watchReferences.id)
+      .orderBy(desc(sql`count(${schema.userWatches.id})`))
+      .limit(5);
+
+    return trending;
   } catch {
     return [];
   }
@@ -191,53 +218,136 @@ function timeAgo(date: Date): string {
   return `${days}d ago`;
 }
 
-// Tools section is now a live component (WatchToolsLive)
-
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default async function Home() {
-  const [{ mostCollected, mostWishlisted }, collectors, activity] = await Promise.all([
+  // Auth check for hero CTA
+  const { userId: clerkId } = await auth();
+  const isSignedIn = !!clerkId;
+
+  let profileUrl = "/sign-in";
+  if (clerkId) {
+    try {
+      const db = getDb();
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.clerkId, clerkId))
+        .limit(1);
+      if (user) profileUrl = `/${user.username}`;
+    } catch {
+      profileUrl = "/dashboard";
+    }
+  }
+
+  const [{ mostCollected, mostWishlisted }, collectors, activity, trending] = await Promise.all([
     getTopLists(),
     getFeaturedCollectors(),
     getRecentActivity(),
+    getTrendingWatches(),
   ]);
 
   const hasTopLists = mostCollected.length > 0 || mostWishlisted.length > 0;
   const hasCollectors = collectors.length > 0;
   const hasActivity = activity.length > 0;
+  const hasTrending = trending.length > 0;
 
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
       <Nav />
 
       {/* Hero */}
-      <HeroSection />
+      <HeroSection profileUrl={isSignedIn ? profileUrl : undefined} />
 
-      {/* Top Lists — only shows if real users have added watches */}
-      {hasTopLists && (
-        <section id="top-lists" className="max-w-[960px] mx-auto px-4 sm:px-6 py-16 scroll-mt-16">
+      {/* Recent Activity — the main feed */}
+      <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
+        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
+          Recent Activity
+        </p>
+        {hasActivity ? (
+          <div className="flex flex-col gap-4">
+            {activity.map((item, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-[16px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-4 sm:p-5"
+              >
+                {/* Header: who did what */}
+                <div className="flex items-center gap-3 mb-2">
+                  <Link href={`/${item.username}`} className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a1814] to-[#2a2a30] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {item.avatarUrl ? (
+                      <img src={item.avatarUrl} alt={item.user} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[13px] font-bold text-white/70">{item.initial}</span>
+                    )}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] text-foreground">
+                      <Link href={`/${item.username}`} className="font-semibold hover:text-[#8a7a5a] transition-colors">{item.user}</Link>{" "}
+                      <span className="text-[rgba(26,24,20,0.4)]">{item.action}</span>{" "}
+                      <Link href={`/watch/${item.slug}`} className="font-medium text-[#8a7a5a] hover:underline">{item.watch}</Link>
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-[rgba(26,24,20,0.25)] flex-shrink-0">{item.time}</span>
+                </div>
+                {/* Caption */}
+                {item.caption && (
+                  <p className="text-[13px] text-[rgba(26,24,20,0.55)] mb-2 ml-12 font-serif italic">&ldquo;{item.caption}&rdquo;</p>
+                )}
+                {/* Watch thumbnail */}
+                {item.imageUrl && (
+                  <Link href={`/watch/${item.slug}`} className="block ml-12 mt-1">
+                    <div className="w-full max-w-[200px] h-[100px] rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] overflow-hidden">
+                      <img src={item.imageUrl} alt={item.watch} className="w-full h-full object-contain p-3" />
+                    </div>
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-[16px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-8 sm:p-12 text-center">
+            <p className="text-[18px] font-bold text-foreground mb-2">No activity yet</p>
+            <p className="text-[14px] text-[rgba(26,24,20,0.4)] max-w-sm mx-auto">
+              Be the first to add a watch to your collection and start the feed.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Trending Watches — last 7 days */}
+      {hasTrending && (
+        <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
           <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-            Top Lists
+            Trending This Week
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mostCollected.length > 0 && (
-              <TopList title="Most Collected" subtitle="Watches owned by the most collectors" items={mostCollected} />
-            )}
-            {mostWishlisted.length > 0 && (
-              <TopList title="Most Wishlisted" subtitle="The watches everyone wants next" items={mostWishlisted} />
-            )}
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x">
+            {trending.map((w) => (
+              <Link
+                key={w.watchId}
+                href={`/watch/${w.slug}`}
+                className="snap-start flex-shrink-0 bg-white rounded-[16px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-4 w-[160px] sm:w-[180px] hover:-translate-y-[2px] hover:shadow-[0_8px_32px_rgba(26,24,20,0.1)] transition-all duration-300 no-underline text-inherit"
+              >
+                <div className="w-full h-[80px] rounded-[10px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] overflow-hidden mb-3">
+                  {w.imageUrl ? (
+                    <img src={w.imageUrl} alt={`${w.brand} ${w.model}`} className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-white/20 text-[20px] font-bold">{w.brand.charAt(0)}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] uppercase tracking-[1px] text-[rgba(26,24,20,0.4)] font-medium truncate">{w.brand}</p>
+                <p className="text-[13px] font-semibold text-foreground truncate mt-0.5">{w.model}</p>
+                <p className="text-[11px] text-[#8a7a5a] font-medium mt-1">{w.count} {w.count === 1 ? "add" : "adds"} this week</p>
+              </Link>
+            ))}
           </div>
         </section>
       )}
 
-      {/* CTA Banner */}
-      <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
-        <CtaBanner />
-      </section>
-
-      {/* Featured Collectors — only shows if real users exist */}
+      {/* Featured Collectors */}
       {hasCollectors && (
         <section id="collectors" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
           <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
@@ -261,46 +371,19 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Recent Activity — only shows if real activity exists */}
-      {hasActivity && (
-        <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
+      {/* Top Lists — compact version */}
+      {hasTopLists && (
+        <section id="top-lists" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
           <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-            Recent Activity
+            Top Lists
           </p>
-          <div className="flex flex-col gap-4">
-            {activity.map((item, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-4 sm:p-5"
-              >
-                {/* Header: who did what */}
-                <div className="flex items-center gap-3 mb-2">
-                  <a href={`/${item.username}`} className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a1814] to-[#2a2a30] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[13px] font-bold text-white/70">{item.initial}</span>
-                  </a>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] text-foreground">
-                      <a href={`/${item.username}`} className="font-semibold hover:text-[#8a7a5a] transition-colors">{item.user}</a>{" "}
-                      <span className="text-[rgba(26,24,20,0.4)]">{item.action}</span>{" "}
-                      <a href={`/watch/${item.slug}`} className="font-medium text-[#8a7a5a] hover:underline">{item.watch}</a>
-                    </p>
-                  </div>
-                  <span className="text-[11px] text-[rgba(26,24,20,0.25)] flex-shrink-0">{item.time}</span>
-                </div>
-                {/* Caption */}
-                {item.caption && (
-                  <p className="text-[13px] text-[rgba(26,24,20,0.55)] mb-2 ml-12">&ldquo;{item.caption}&rdquo;</p>
-                )}
-                {/* Watch thumbnail */}
-                {item.imageUrl && (
-                  <a href={`/watch/${item.slug}`} className="block ml-12 mt-1">
-                    <div className="w-full max-w-[200px] h-[100px] rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] overflow-hidden">
-                      <img src={item.imageUrl} alt={item.watch} className="w-full h-full object-contain p-3" />
-                    </div>
-                  </a>
-                )}
-              </div>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {mostCollected.length > 0 && (
+              <TopList title="Most Collected" subtitle="Owned by the most collectors" items={mostCollected} />
+            )}
+            {mostWishlisted.length > 0 && (
+              <TopList title="Most Wishlisted" subtitle="On everyone's radar" items={mostWishlisted} />
+            )}
           </div>
         </section>
       )}

@@ -8,10 +8,14 @@ import { ScoreRing } from "@/components/score-ring";
 import { DnaTags } from "@/components/dna-tags";
 import { CollectionTimeline } from "@/components/collection-timeline";
 import { FollowButton } from "@/components/follow-button";
+import { RemoveWatchButton } from "@/components/remove-watch-button";
 import { EditableProfileHeader } from "./edit-profile-header";
+import { ProfileSearch } from "./profile-search";
+import { CollectionInsights } from "./collection-insights";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
+  gapAnalysis,
   personality,
   nextBestPurchase,
   type AnalyticsWatch,
@@ -130,6 +134,15 @@ async function getProfileData(username: string) {
   const score = diversityScore(collectionAnalytics);
   const dna = personality(collectionAnalytics);
   const nbp = nextBestPurchase(collectionAnalytics, wishlistAnalytics);
+  const gaps = gapAnalysis(collectionAnalytics, wishlistAnalytics);
+
+  // Top 3 worst gaps (by coverage % ascending)
+  const topGaps = [...gaps]
+    .sort(
+      (a, b) =>
+        a.owned.length / a.total - b.owned.length / b.total
+    )
+    .slice(0, 3);
 
   // Timeline-ready collection data
   const collectionForTimeline = collectionRows.map((r) => ({
@@ -152,12 +165,28 @@ async function getProfileData(username: string) {
     userWatchId: r.id,
   }));
 
-  // Simple wishlist for compact display
+  // Simple wishlist for compact display (visitor)
   const wishlistCompact = wishlistRows.map((r) => ({
     brand: r.watch.brand,
     model: r.watch.model,
     notes: r.notes || undefined,
   }));
+
+  // Wishlist ranked by gaps filled (owner view)
+  const rankedWishlist = nbp.map((item, i) => {
+    const row = wishlistRows.find(
+      (r) =>
+        r.watch.brand === item.watch.brand &&
+        r.watch.model === item.watch.model
+    );
+    return {
+      rank: i + 1,
+      userWatchId: row?.id ?? 0,
+      brand: item.watch.brand,
+      model: item.watch.model,
+      gapsFilled: item.gapsFilled,
+    };
+  });
 
   return {
     user,
@@ -166,8 +195,11 @@ async function getProfileData(username: string) {
     score,
     dna,
     nbp,
+    gaps,
+    topGaps,
     collectionForTimeline,
     wishlistCompact,
+    rankedWishlist,
     followerCount,
   };
 }
@@ -228,8 +260,11 @@ export default async function ProfilePage({
     wishlistRows,
     score,
     dna,
+    nbp,
+    topGaps,
     collectionForTimeline,
     wishlistCompact,
+    rankedWishlist,
     followerCount,
   } = data;
 
@@ -240,6 +275,7 @@ export default async function ProfilePage({
   const displayName = user.displayName || user.username;
   const hasWatches = collectionRows.length > 0 || wishlistRows.length > 0;
   const initial = displayName.charAt(0).toUpperCase();
+  const topNbp = nbp[0] ?? null;
 
   return (
     <div className="min-h-screen">
@@ -248,9 +284,9 @@ export default async function ProfilePage({
       <div className="max-w-[860px] mx-auto px-4 sm:px-6 pb-20">
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
-        {/* ── Profile Header ─────────────────────────────── */}
+        {/* -- Profile Header ------------------------------------------- */}
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
-          {/* Left: name, bio, etc — editable for owner */}
+          {/* Left: name, bio, etc -- editable for owner */}
           {isOwner ? (
             <EditableProfileHeader
               username={user.username}
@@ -291,7 +327,7 @@ export default async function ProfilePage({
             </div>
           )}
 
-          {/* Follow button — only for visitors */}
+          {/* Follow button -- only for visitors */}
           {!isOwner && (
             <div className="flex-shrink-0 flex items-start">
               <FollowButton
@@ -303,7 +339,7 @@ export default async function ProfilePage({
           )}
         </div>
 
-        {/* ── DNA Tags (subtle) ──────────────────────────── */}
+        {/* -- DNA Tags (subtle) ---------------------------------------- */}
         {dna.tags.length > 0 && (
           <div className="mb-10">
             <DnaTags
@@ -315,63 +351,122 @@ export default async function ProfilePage({
           </div>
         )}
 
-        {/* ── Empty State ────────────────────────────────── */}
+        {/* Add Watch button rendered inside collection header below */}
+
+        {/* -- Empty State ---------------------------------------------- */}
         {!hasWatches && (
           <section className="mb-14">
-            <div className="border border-[rgba(26,24,20,0.08)] border-dashed rounded-[20px] py-16 px-8 text-center">
-              <p className="text-[24px] font-light tracking-tight mb-2">
+            <div className="border border-[rgba(26,24,20,0.08)] border-dashed rounded-[20px] py-12 px-8 text-center">
+              <p className="text-[20px] font-light tracking-tight mb-2">
                 <span className="font-serif italic font-medium text-[#8a7a5a]">
-                  No watches yet
+                  {isOwner ? "Start your collection" : "No watches yet"}
                 </span>
               </p>
-              <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-2 max-w-md mx-auto">
-                {displayName} hasn&apos;t added any watches yet. Check back
-                soon!
+              <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-4 max-w-md mx-auto">
+                {isOwner
+                  ? "Add your first watch to start building your collection."
+                  : `${displayName} hasn\u0027t added any watches yet. Check back soon!`}
               </p>
+              {isOwner && <ProfileSearch />}
             </div>
           </section>
         )}
 
-        {/* ── The Collection (Timeline) ──────────────────── */}
+        {/* -- The Collection (Timeline) -------------------------------- */}
         {(collectionRows.length > 0 || isOwner) && (
           <section className="mb-14">
-            <div className="flex justify-between items-baseline mb-6 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+            <div className="flex justify-between items-center mb-6 pb-3 border-b border-[rgba(26,24,20,0.06)]">
               <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
                 The Collection
-              </h2>
-              <div className="flex items-center gap-3">
-                <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
-                  {collectionRows.length} piece
-                  {collectionRows.length !== 1 ? "s" : ""}
+                <span className="ml-2 text-[rgba(26,24,20,0.2)] font-medium normal-case tracking-normal">
+                  {collectionRows.length} piece{collectionRows.length !== 1 ? "s" : ""}
                 </span>
-                {isOwner && (
-                  <Link
-                    href="/dashboard"
-                    className="text-[11px] font-semibold text-[#8a7a5a] hover:underline"
-                  >
-                    + Add watch
-                  </Link>
-                )}
-              </div>
+              </h2>
+              {isOwner && collectionRows.length > 0 && <ProfileSearch />}
             </div>
             {collectionRows.length > 0 ? (
-              <CollectionTimeline watches={collectionForTimeline} isOwner={isOwner} />
+              <CollectionTimeline
+                watches={collectionForTimeline}
+                isOwner={isOwner}
+              />
             ) : isOwner ? (
               <div className="border border-dashed border-[rgba(26,24,20,0.1)] rounded-[20px] py-12 text-center">
-                <p className="text-[15px] text-[rgba(26,24,20,0.3)] mb-3">Your collection is empty</p>
-                <Link
-                  href="/dashboard"
-                  className="inline-block px-6 py-2.5 text-[13px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity"
-                >
-                  Add your first watch
-                </Link>
+                <p className="text-[15px] text-[rgba(26,24,20,0.3)] mb-3">
+                  Your collection is empty
+                </p>
+                <p className="text-[13px] text-[rgba(26,24,20,0.25)]">
+                  Use the search above to add your first watch
+                </p>
               </div>
             ) : null}
           </section>
         )}
 
-        {/* ── The Wishlist (Compact) ─────────────────────── */}
-        {wishlistCompact.length > 0 && (
+        {/* -- The Wishlist --------------------------------------------- */}
+        {/* Owner view: ranked with gap counts and remove buttons */}
+        {isOwner && rankedWishlist.length > 0 && (
+          <section className="mb-14">
+            <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+              <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
+                The Wishlist
+              </h2>
+              <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
+                {rankedWishlist.length} piece
+                {rankedWishlist.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {rankedWishlist.map((w) => (
+                <div
+                  key={w.rank}
+                  className="flex gap-3 sm:gap-4 items-center px-3 sm:px-5 py-3 sm:py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px]"
+                >
+                  <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
+                    {String(w.rank).padStart(2, "0")}
+                  </span>
+
+                  <div
+                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center font-black text-[18px] text-white/5"
+                    style={{
+                      background:
+                        "linear-gradient(145deg,#20202a,#10101a)",
+                    }}
+                  >
+                    {w.brand.charAt(0)}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
+                      {w.brand}
+                    </p>
+                    <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
+                      {w.model}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {w.gapsFilled > 0 && (
+                      <span className="text-[9px] font-bold text-[#6b8f4e]">
+                        Fills {w.gapsFilled} gap
+                        {w.gapsFilled !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {w.userWatchId > 0 && (
+                      <RemoveWatchButton
+                        userWatchId={w.userWatchId}
+                        type="wishlist"
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Visitor view: compact read-only wishlist */}
+        {!isOwner && wishlistCompact.length > 0 && (
           <section className="mb-14">
             <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
               <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
@@ -411,8 +506,30 @@ export default async function ProfilePage({
           </section>
         )}
 
-        {/* ── Collector DNA (subtle bottom section) ──────── */}
-        {hasWatches && (
+        {/* -- Collection Insights (owner only, collapsible) ------------ */}
+        {isOwner && hasWatches && (
+          <CollectionInsights
+            score={score}
+            topNbp={
+              topNbp
+                ? {
+                    brand: topNbp.watch.brand,
+                    model: topNbp.watch.model,
+                    gapsFilled: topNbp.gapsFilled,
+                  }
+                : null
+            }
+            topGaps={topGaps.map((g) => ({
+              dimension: g.dimension,
+              label: g.label,
+              owned: g.owned,
+              total: g.total,
+            }))}
+          />
+        )}
+
+        {/* -- Collector DNA (subtle bottom section, visitor view) ------- */}
+        {!isOwner && hasWatches && (
           <section className="mb-14">
             <div className="border border-[rgba(26,24,20,0.06)] rounded-[20px] px-6 py-8 flex flex-col sm:flex-row items-center gap-6">
               <ScoreRing score={score} size={80} label="Diversity" />
@@ -428,31 +545,33 @@ export default async function ProfilePage({
           </section>
         )}
 
-        {/* ── CTA Banner ─────────────────────────────────── */}
-        <section className="mb-4">
-          <div className="border border-[rgba(26,24,20,0.06)] rounded-[24px] py-12 px-8 text-center">
-            <h2 className="text-[28px] font-light tracking-[-0.5px]">
-              <span className="font-serif italic font-medium">
-                What&apos;s{" "}
-                <span className="text-[#8a7a5a]">your</span>
-              </span>{" "}
-              collector DNA?
-            </h2>
-            <p className="text-[13px] text-[rgba(26,24,20,0.4)] mt-3 max-w-md mx-auto leading-relaxed">
-              Every collection tells a story. Build yours on WristList and
-              discover your diversity score, your blind spots, and what to buy
-              next.
-            </p>
-            <Link
-              href="/"
-              className="inline-block mt-6 px-9 py-3.5 bg-[#1a1814] text-[#f6f4ef] text-[12px] font-bold rounded-full hover:translate-y-[-2px] hover:shadow-[0_8px_32px_rgba(26,24,20,0.2)] transition-all tracking-[0.5px]"
-            >
-              Create Your WristList
-            </Link>
-          </div>
-        </section>
+        {/* -- CTA Banner (visitor only) -------------------------------- */}
+        {!isOwner && (
+          <section className="mb-4">
+            <div className="border border-[rgba(26,24,20,0.06)] rounded-[24px] py-12 px-8 text-center">
+              <h2 className="text-[28px] font-light tracking-[-0.5px]">
+                <span className="font-serif italic font-medium">
+                  What&apos;s{" "}
+                  <span className="text-[#8a7a5a]">your</span>
+                </span>{" "}
+                collector DNA?
+              </h2>
+              <p className="text-[13px] text-[rgba(26,24,20,0.4)] mt-3 max-w-md mx-auto leading-relaxed">
+                Every collection tells a story. Build yours on WristList and
+                discover your diversity score, your blind spots, and what to buy
+                next.
+              </p>
+              <Link
+                href="/"
+                className="inline-block mt-6 px-9 py-3.5 bg-[#1a1814] text-[#f6f4ef] text-[12px] font-bold rounded-full hover:translate-y-[-2px] hover:shadow-[0_8px_32px_rgba(26,24,20,0.2)] transition-all tracking-[0.5px]"
+              >
+                Create Your WristList
+              </Link>
+            </div>
+          </section>
+        )}
 
-        {/* ── Footer ─────────────────────────────────────── */}
+        {/* -- Footer --------------------------------------------------- */}
         <footer className="text-center py-8">
           <p className="text-[13px] font-light tracking-[4px] uppercase text-[rgba(26,24,20,0.2)]">
             <strong className="font-bold">WRIST</strong>LIST

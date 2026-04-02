@@ -71,6 +71,11 @@ export async function PATCH(request: NextRequest) {
     updates.collectingSince = body.collectingSince || null;
   }
 
+  // Avatar URL (optional)
+  if (body.avatarUrl !== undefined) {
+    updates.avatarUrl = body.avatarUrl || null;
+  }
+
   // Nothing to update
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ user: currentUser });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface InlineEditProps {
@@ -103,7 +103,53 @@ export function EditableProfileHeader({
 }: EditableProfileProps) {
   const router = useRouter();
   const [err, setErr] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const initial = (displayName || username).charAt(0).toUpperCase();
+
+  const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    setErr(null);
+
+    try {
+      // Upload the file
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) {
+        const d = await uploadRes.json().catch(() => ({}));
+        setErr(d.error || "Upload failed");
+        return;
+      }
+      const { url } = await uploadRes.json();
+
+      // Save the avatar URL
+      const saveRes = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: url }),
+      });
+      if (!saveRes.ok) {
+        const d = await saveRes.json().catch(() => ({}));
+        setErr(d.error || "Failed to save avatar");
+        return;
+      }
+
+      router.refresh();
+    } catch {
+      setErr("Something went wrong uploading avatar");
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [router]);
 
   const save = useCallback(async (field: string, value: string) => {
     setErr(null);
@@ -144,18 +190,43 @@ export function EditableProfileHeader({
 
   return (
     <div className="flex items-start gap-4 flex-1">
-      {/* Avatar */}
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={displayName}
-          className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full object-cover flex-shrink-0 border border-[rgba(26,24,20,0.08)]"
-        />
-      ) : (
-        <div className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-[#1a1814] to-[#2a2a30] text-white font-bold text-[20px] sm:text-[24px]">
-          {initial}
+      {/* Avatar — clickable for upload */}
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="relative flex-shrink-0 rounded-full group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a7a5a] focus-visible:ring-offset-2"
+        aria-label="Change profile picture"
+      >
+        {uploadingAvatar && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-full bg-black/40">
+            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin block" />
+          </div>
+        )}
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={displayName}
+            className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full object-cover border border-[rgba(26,24,20,0.08)]"
+          />
+        ) : (
+          <div className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full flex items-center justify-center bg-gradient-to-br from-[#1a1814] to-[#2a2a30] text-white font-bold text-[20px] sm:text-[24px]">
+            {initial}
+          </div>
+        )}
+        <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
         </div>
-      )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarUpload}
+          className="hidden"
+        />
+      </button>
 
       <div className="min-w-0 flex-1">
         {/* Display Name — editable */}

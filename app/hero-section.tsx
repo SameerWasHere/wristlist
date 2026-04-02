@@ -1,25 +1,37 @@
 "use client";
 
-import { WatchSearch } from "@/components/watch-search";
+import { SignInButton, useUser } from "@clerk/nextjs";
+import Link from "next/link";
 
-export function HeroSection() {
+interface HeroSectionProps {
+  profileUrl?: string;
+}
+
+export function HeroSection({ profileUrl = "/dashboard" }: HeroSectionProps) {
+  const { isSignedIn } = useUser();
+
   return (
-    <section className="max-w-[960px] mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-12 sm:pb-16 text-center">
-      <h1 className="text-[28px] sm:text-[44px] font-light tracking-tight text-foreground leading-tight">
-        What&apos;s on your{" "}
-        <span className="font-serif italic font-medium text-[36px] sm:text-[56px] text-[#8a7a5a] relative inline-block">
-          wrist
-          <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#8a7a5a] to-transparent opacity-40" />
-        </span>
-        <span className="font-serif italic font-medium text-[36px] sm:text-[56px] text-[#8a7a5a]">?</span>
+    <section className="max-w-[960px] mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-14 sm:pb-20 text-center">
+      <h1 className="text-[36px] sm:text-[56px] font-light tracking-[6px] uppercase text-foreground leading-tight">
+        <strong className="font-bold">WRIST</strong>LIST
       </h1>
-      <p className="text-[15px] sm:text-[17px] text-[rgba(26,24,20,0.45)] mt-4 max-w-lg mx-auto leading-relaxed">
-        Catalog your collection, discover your collector DNA, and connect with
-        enthusiasts who share your taste.
+      <p className="text-[17px] sm:text-[20px] font-serif italic text-[rgba(26,24,20,0.4)] mt-4">
+        Every collection tells a story. What&apos;s yours?
       </p>
-      <div className="mt-8">
-        <WatchSearch />
-      </div>
+      {isSignedIn ? (
+        <Link
+          href={profileUrl}
+          className="inline-block mt-8 px-8 py-3 bg-[#1a1814] text-[#f6f4ef] text-[14px] font-semibold rounded-full hover:opacity-90 transition-opacity"
+        >
+          View Your Profile
+        </Link>
+      ) : (
+        <SignInButton mode="modal">
+          <button className="mt-8 px-8 py-3 bg-[#1a1814] text-[#f6f4ef] text-[14px] font-semibold rounded-full hover:opacity-90 transition-opacity cursor-pointer">
+            Start Your Collection
+          </button>
+        </SignInButton>
+      )}
     </section>
   );
 }
