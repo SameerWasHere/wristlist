@@ -286,34 +286,42 @@ export function EditWatchModal({
               </div>
             </div>
 
-            {/* Photo upload */}
-            <div className="mb-5">
-              <label className={labelClass}>
-                Photos{" "}
-                <span className="text-[rgba(26,24,20,0.25)]">(optional, up to 3)</span>
-              </label>
-              <PhotoUpload
-                onUpload={(urls) => setPhotos(urls)}
-                maxPhotos={3}
-                existingPhotos={photos}
-              />
-            </div>
+            {/* Photo upload — collection only */}
+            {status === "collection" && (
+              <div className="mb-5">
+                <label className={labelClass}>
+                  Photos{" "}
+                  <span className="text-[rgba(26,24,20,0.25)]">(optional, up to 3)</span>
+                </label>
+                <PhotoUpload
+                  onUpload={(urls) => setPhotos(urls)}
+                  maxPhotos={3}
+                  existingPhotos={photos}
+                />
+              </div>
+            )}
 
-            {/* Caption */}
+            {/* Caption / Why I want this */}
             <div className="mb-5">
               <label className={labelClass}>
-                Caption{" "}
-                <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+                {status === "wishlist" ? (
+                  <>Why I want this{" "}<span className="text-[rgba(26,24,20,0.25)]">(optional)</span></>
+                ) : (
+                  <>Caption{" "}<span className="text-[rgba(26,24,20,0.25)]">(optional)</span></>
+                )}
               </label>
               <input
                 type="text"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                placeholder="My daily driver, grail achieved..."
+                placeholder={status === "wishlist" ? "My grail watch, would complete my diver collection..." : "My daily driver, grail achieved..."}
                 className={inputClass}
               />
             </div>
 
+            {/* Collection-only fields */}
+            {status === "collection" && (
+              <>
             {/* Year fields side by side */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div>
@@ -442,6 +450,8 @@ export function EditWatchModal({
                 </div>
               )}
             </div>
+              </>
+            )}
 
             {/* Save button */}
             <button
