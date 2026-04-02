@@ -1,10 +1,26 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 
 export function Nav() {
   const { isSignedIn, isLoaded } = useUser();
+  const [username, setUsername] = useState<string | null>(null);
+
+  // Fetch the user's username for profile link
+  useEffect(() => {
+    if (isSignedIn) {
+      fetch("/api/user")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user?.username) {
+            setUsername(data.user.username);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isSignedIn]);
 
   return (
     <nav className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-[rgba(26,24,20,0.06)] bg-background">
@@ -14,23 +30,17 @@ export function Nav() {
       </Link>
 
       {/* Right side */}
-      <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-3">
+      <div className="flex items-center gap-1 sm:gap-2">
+        <div className="hidden sm:flex items-center gap-1">
           <Link
             href="/#top-lists"
-            className="px-4 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
+            className="px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
           >
             Top Lists
           </Link>
           <Link
-            href="/#collectors"
-            className="px-4 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
-          >
-            Collectors
-          </Link>
-          <Link
             href="/tools"
-            className="px-4 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
+            className="px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
           >
             Tools
           </Link>
@@ -39,16 +49,18 @@ export function Nav() {
             <>
               <Link
                 href="/dashboard"
-                className="px-4 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
+                className="px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
               >
                 Dashboard
               </Link>
-              <Link
-                href="/settings"
-                className="px-4 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
-              >
-                Settings
-              </Link>
+              {username && (
+                <Link
+                  href={`/${username}`}
+                  className="px-3 py-1.5 text-[12px] font-medium text-foreground/60 hover:text-foreground rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
+                >
+                  My Profile
+                </Link>
+              )}
             </>
           )}
         </div>
