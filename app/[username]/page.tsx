@@ -1,19 +1,17 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { Nav } from "@/components/nav";
 import { ScoreRing } from "@/components/score-ring";
 import { DnaTags } from "@/components/dna-tags";
-import { StatsBar } from "@/components/stats-bar";
-import { WatchGrid } from "@/components/watch-grid";
+import { CollectionTimeline } from "@/components/collection-timeline";
+import { FollowButton } from "@/components/follow-button";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
-  gapAnalysis,
   personality,
   nextBestPurchase,
-  radarData,
   type AnalyticsWatch,
 } from "@/lib/analytics";
 
@@ -51,26 +49,6 @@ function toAnalyticsWatch(w: {
   };
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-}
-
-function padRank(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-function gapColor(current: number, total: number): string {
-  const pct = current / total;
-  if (pct < 0.3) return "#DC2626";
-  if (pct <= 0.6) return "#B8860B";
-  return "#059669";
-}
-
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
@@ -91,6 +69,11 @@ async function getProfileData(username: string) {
       id: schema.userWatches.id,
       modelYear: schema.userWatches.modelYear,
       modifications: schema.userWatches.modifications,
+      acquiredYear: schema.userWatches.acquiredYear,
+      milestone: schema.userWatches.milestone,
+      caption: schema.userWatches.caption,
+      photos: schema.userWatches.photos,
+      notes: schema.userWatches.notes,
       watch: schema.watchReferences,
     })
     .from(schema.userWatches)
@@ -108,6 +91,7 @@ async function getProfileData(username: string) {
   const wishlistRows = await db
     .select({
       id: schema.userWatches.id,
+      notes: schema.userWatches.notes,
       watch: schema.watchReferences,
     })
     .from(schema.userWatches)
@@ -122,49 +106,66 @@ async function getProfileData(username: string) {
       )
     );
 
-  const collectionAnalytics = collectionRows.map((r) => toAnalyticsWatch(r.watch));
-  const wishlistAnalytics = wishlistRows.map((r) => toAnalyticsWatch(r.watch));
+  // Follower count
+  let followerCount = 0;
+  try {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.follows)
+      .where(eq(schema.follows.followingId, user.id));
+    followerCount = Number(result?.count ?? 0);
+  } catch {
+    // follows table may not exist yet
+  }
+
+  const collectionAnalytics = collectionRows.map((r) =>
+    toAnalyticsWatch(r.watch)
+  );
+  const wishlistAnalytics = wishlistRows.map((r) =>
+    toAnalyticsWatch(r.watch)
+  );
 
   const score = diversityScore(collectionAnalytics);
   const dna = personality(collectionAnalytics);
-  const gaps = gapAnalysis(collectionAnalytics, wishlistAnalytics);
   const nbp = nextBestPurchase(collectionAnalytics, wishlistAnalytics);
-  const radar = radarData(collectionAnalytics, wishlistAnalytics);
 
-  // Projected score (collection + wishlist combined)
-  const projectedScore = diversityScore([...collectionAnalytics, ...wishlistAnalytics]);
-
-  const collectionForGrid = collectionRows.map((r) => ({
+  // Timeline-ready collection data
+  const collectionForTimeline = collectionRows.map((r) => ({
     brand: r.watch.brand,
     model: r.watch.model,
     reference: r.watch.reference,
     category: r.watch.category || "",
-    sizeMm: r.watch.sizeMm || 40,
     movement: r.watch.movement || "",
-    price: r.watch.retailPrice || 0,
-    color: r.watch.color || "black",
+    sizeMm: r.watch.sizeMm || 40,
+    origin: r.watch.origin || "",
+    caption: r.caption || undefined,
+    milestone: r.milestone || undefined,
+    acquiredYear: r.acquiredYear || undefined,
+    modelYear: r.modelYear || undefined,
+    photos: (r.photos as string[] | null) || undefined,
     imageUrl: r.watch.imageUrl || undefined,
+    slug: r.watch.slug,
+    color: r.watch.color || "default",
+    modifications: (r.modifications as string[] | null) || undefined,
   }));
 
-  // Top 3 worst gaps
-  const topGaps = [...gaps]
-    .sort((a, b) => (a.owned.length / a.total) - (b.owned.length / b.total))
-    .slice(0, 3);
+  // Simple wishlist for compact display
+  const wishlistCompact = wishlistRows.map((r) => ({
+    brand: r.watch.brand,
+    model: r.watch.model,
+    notes: r.notes || undefined,
+  }));
 
   return {
     user,
     collectionRows,
     wishlistRows,
-    collectionAnalytics,
-    wishlistAnalytics,
     score,
-    projectedScore,
     dna,
-    gaps,
-    topGaps,
     nbp,
-    radar,
-    collectionForGrid,
+    collectionForTimeline,
+    wishlistCompact,
+    followerCount,
   };
 }
 
@@ -223,35 +224,15 @@ export default async function ProfilePage({
     collectionRows,
     wishlistRows,
     score,
-    projectedScore,
     dna,
-    topGaps,
-    nbp,
-    collectionForGrid,
+    collectionForTimeline,
+    wishlistCompact,
+    followerCount,
   } = data;
 
   const displayName = user.displayName || user.username;
   const hasWatches = collectionRows.length > 0 || wishlistRows.length > 0;
-
-  // Stats bar — omit value on public profiles (privacy)
-  const stats = [
-    { label: "Watches", value: String(collectionRows.length), accent: "#6b5b3a" },
-    {
-      label: "Categories",
-      value: `${new Set(collectionForGrid.map((w) => w.category.toLowerCase()).filter(Boolean)).size}/7`,
-    },
-    { label: "On the List", value: String(wishlistRows.length), accent: "#8a7a5a" },
-  ];
-
-  // Wishlist ranked by gaps filled
-  const rankedWishlist = nbp.map((item, i) => ({
-    rank: i + 1,
-    brand: item.watch.brand,
-    model: item.watch.model,
-    price: item.watch.price,
-    gapsFilled: item.gapsFilled,
-    bestValue: i === 0 && item.gapsFilled > 0,
-  }));
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen">
@@ -260,59 +241,64 @@ export default async function ProfilePage({
       <div className="max-w-[860px] mx-auto px-4 sm:px-6 pb-20">
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
-        {/* ── Profile Hero ────────────────────────────────── */}
-        <div className="flex flex-col-reverse items-center text-center sm:flex-row sm:items-start sm:text-left gap-10 mb-12">
-          <div className="flex-1">
-            <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-2">
-              The collection of
-            </p>
-            <h1 className="text-[32px] sm:text-[42px] font-black tracking-tighter leading-none mb-1">
-              {displayName}
-            </h1>
-            <p className="text-[13px] text-[rgba(26,24,20,0.35)] mb-4">
-              @{user.username}
-              {user.collectingSince && (
-                <> &middot; Collecting since {user.collectingSince}</>
-              )}
-            </p>
-
-            <p className="font-serif italic text-[20px] font-medium text-[rgba(26,24,20,0.7)] tracking-[-0.3px] mb-1.5">
-              {dna.archetype}
-            </p>
-            <p className="text-[14px] text-[rgba(26,24,20,0.4)] leading-[1.7] max-w-[420px] sm:max-w-[420px] mx-auto sm:mx-0">
-              {dna.description}
-            </p>
-
-            {dna.tags.length > 0 && (
-              <div className="mt-5 flex justify-center sm:justify-start">
-                <DnaTags
-                  tags={dna.tags.map((t) => ({
-                    text: t.text,
-                    primary: t.variant === "primary",
-                  }))}
-                />
+        {/* ── Profile Header ─────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
+          {/* Left: Avatar + name + bio */}
+          <div className="flex items-start gap-4 flex-1">
+            {/* Avatar */}
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={displayName}
+                className="w-[64px] h-[64px] rounded-full object-cover flex-shrink-0 border border-[rgba(26,24,20,0.08)]"
+              />
+            ) : (
+              <div className="w-[64px] h-[64px] rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-[#1a1814] to-[#2a2a30] text-white font-bold text-[24px]">
+                {initial}
               </div>
             )}
+
+            <div className="min-w-0">
+              <h1 className="text-[24px] sm:text-[28px] font-black tracking-tighter leading-none mb-0.5">
+                {displayName}
+              </h1>
+              <p className="text-[13px] text-[rgba(26,24,20,0.35)] mb-2">
+                @{user.username}
+                {user.collectingSince && (
+                  <> &middot; Collecting since {user.collectingSince}</>
+                )}
+              </p>
+              {user.bio && (
+                <p className="text-[14px] text-[rgba(26,24,20,0.55)] leading-relaxed max-w-[420px]">
+                  {user.bio}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="flex-shrink-0 flex flex-col items-center">
-            <ScoreRing score={score} size={120} label="Diversity" />
-            {wishlistRows.length > 0 && (
-              <p className="text-[10px] text-[rgba(26,24,20,0.3)] font-medium mt-3">
-                {projectedScore} with wishlist
-              </p>
-            )}
+          {/* Right: Follow button */}
+          <div className="flex-shrink-0 flex items-start">
+            <FollowButton
+              userId={user.id}
+              isFollowing={false}
+              followerCount={followerCount}
+            />
           </div>
         </div>
 
-        {/* ── Stats Bar ───────────────────────────────────── */}
-        {hasWatches && (
-          <div className="mb-12">
-            <StatsBar stats={stats} />
+        {/* ── DNA Tags (subtle) ──────────────────────────── */}
+        {dna.tags.length > 0 && (
+          <div className="mb-10">
+            <DnaTags
+              tags={dna.tags.map((t) => ({
+                text: t.text,
+                primary: t.variant === "primary",
+              }))}
+            />
           </div>
         )}
 
-        {/* ── Empty State ─────────────────────────────────── */}
+        {/* ── Empty State ────────────────────────────────── */}
         {!hasWatches && (
           <section className="mb-14">
             <div className="border border-[rgba(26,24,20,0.08)] border-dashed rounded-[20px] py-16 px-8 text-center">
@@ -322,117 +308,88 @@ export default async function ProfilePage({
                 </span>
               </p>
               <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-2 max-w-md mx-auto">
-                {displayName} hasn&apos;t added any watches yet. Check back soon!
+                {displayName} hasn&apos;t added any watches yet. Check back
+                soon!
               </p>
             </div>
           </section>
         )}
 
-        {/* ── The Collection ──────────────────────────────── */}
+        {/* ── The Collection (Timeline) ──────────────────── */}
         {collectionRows.length > 0 && (
           <section className="mb-14">
-            <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+            <div className="flex justify-between items-baseline mb-6 pb-3 border-b border-[rgba(26,24,20,0.06)]">
               <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
                 The Collection
               </h2>
               <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
-                {collectionRows.length} piece{collectionRows.length !== 1 ? "s" : ""}
+                {collectionRows.length} piece
+                {collectionRows.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <WatchGrid watches={collectionForGrid} />
+            <CollectionTimeline watches={collectionForTimeline} />
           </section>
         )}
 
-        {/* ── Collection Gaps ─────────────────────────────── */}
-        {topGaps.length > 0 && collectionRows.length > 0 && (
-          <section className="mb-14">
-            <h2 className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-4">
-              Collection Gaps
-            </h2>
-            <div className="bg-white border border-[rgba(26,24,20,0.06)] rounded-[20px] px-4 sm:px-6 py-5 space-y-4">
-              {topGaps.map((gap) => {
-                const pct = (gap.owned.length / gap.total) * 100;
-                const color = gapColor(gap.owned.length, gap.total);
-                return (
-                  <div key={gap.dimension}>
-                    <div className="flex justify-between items-baseline mb-1.5">
-                      <span className="text-[13px] font-semibold tracking-tight">
-                        {gap.label}
-                      </span>
-                      <span className="text-[12px] font-bold" style={{ color }}>
-                        {gap.owned.length}/{gap.total}
-                      </span>
-                    </div>
-                    <div className="h-[6px] rounded-full bg-[rgba(26,24,20,0.06)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, backgroundColor: color }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* ── The Wishlist ────────────────────────────────── */}
-        {rankedWishlist.length > 0 && (
+        {/* ── The Wishlist (Compact) ─────────────────────── */}
+        {wishlistCompact.length > 0 && (
           <section className="mb-14">
             <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
               <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
                 The Wishlist
               </h2>
               <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
-                {rankedWishlist.length} piece{rankedWishlist.length !== 1 ? "s" : ""}
+                {wishlistCompact.length} piece
+                {wishlistCompact.length !== 1 ? "s" : ""}
               </span>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {rankedWishlist.map((w) => (
+            <div className="flex flex-col gap-2">
+              {wishlistCompact.map((w, i) => (
                 <div
-                  key={w.rank}
-                  className="flex gap-3 sm:gap-4 items-center px-3 sm:px-5 py-3 sm:py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px] transition-all hover:translate-x-1 hover:border-[rgba(26,24,20,0.1)]"
+                  key={i}
+                  className="flex items-baseline gap-3 px-4 py-3 bg-white border border-[rgba(26,24,20,0.06)] rounded-[14px]"
                 >
-                  <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
-                    {padRank(w.rank)}
-                  </span>
-
-                  <div
-                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center font-black text-[18px] text-white/5"
-                    style={{
-                      background: "linear-gradient(145deg,#20202a,#10101a)",
-                    }}
-                  >
-                    {w.brand.charAt(0)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.3)] font-bold">
                       {w.brand}
-                    </p>
-                    <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
+                    </span>
+                    <span className="mx-2 text-[rgba(26,24,20,0.15)]">
+                      /
+                    </span>
+                    <span className="text-[14px] font-semibold tracking-[-0.2px]">
                       {w.model}
+                    </span>
+                  </div>
+                  {w.notes && (
+                    <p className="text-[12px] text-[rgba(26,24,20,0.35)] italic flex-shrink-0 max-w-[200px] truncate">
+                      {w.notes}
                     </p>
-                  </div>
-
-                  <div className="text-right flex-shrink-0">
-                    {w.gapsFilled > 0 && (
-                      <p className="text-[9px] font-bold text-[#6b8f4e]">
-                        Fills {w.gapsFilled} gap{w.gapsFilled !== 1 ? "s" : ""}
-                        {w.bestValue && (
-                          <span className="text-[#b8860b]"> &middot; Best next add</span>
-                        )}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* ── CTA Banner ──────────────────────────────────── */}
+        {/* ── Collector DNA (subtle bottom section) ──────── */}
+        {hasWatches && (
+          <section className="mb-14">
+            <div className="border border-[rgba(26,24,20,0.06)] rounded-[20px] px-6 py-8 flex flex-col sm:flex-row items-center gap-6">
+              <ScoreRing score={score} size={80} label="Diversity" />
+              <div className="text-center sm:text-left">
+                <p className="font-serif italic text-[18px] font-medium text-[rgba(26,24,20,0.7)] tracking-[-0.3px] mb-1">
+                  {dna.archetype}
+                </p>
+                <p className="text-[13px] text-[rgba(26,24,20,0.4)] leading-relaxed max-w-[400px]">
+                  {dna.description}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── CTA Banner ─────────────────────────────────── */}
         <section className="mb-4">
           <div className="border border-[rgba(26,24,20,0.06)] rounded-[24px] py-12 px-8 text-center">
             <h2 className="text-[28px] font-light tracking-[-0.5px]">
@@ -456,7 +413,7 @@ export default async function ProfilePage({
           </div>
         </section>
 
-        {/* ── Footer ──────────────────────────────────────── */}
+        {/* ── Footer ─────────────────────────────────────── */}
         <footer className="text-center py-8">
           <p className="text-[13px] font-light tracking-[4px] uppercase text-[rgba(26,24,20,0.2)]">
             <strong className="font-bold">WRIST</strong>LIST
