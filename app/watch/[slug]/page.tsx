@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import { Nav } from "@/components/nav";
 import { getDb, schema } from "@/lib/db";
 import { eq, sql, and, ne, inArray } from "drizzle-orm";
+import { FamilyEditButton, ReferenceEditButton, HistoryButton } from "./community-features";
+import { AddVariationButton } from "./add-variation-button";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +14,20 @@ interface PageProps {
 }
 
 /* ---------- helpers ---------- */
+
+function timeAgo(date: Date | null): string {
+  if (!date) return "";
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 async function getFamilyBySlug(slug: string) {
   const db = getDb();
@@ -204,6 +221,25 @@ async function getRelatedFamilies(brand: string, excludeFamilyId: number) {
   }
 }
 
+async function getFamilyCreator(createdBy: number | null) {
+  if (!createdBy) return null;
+  const db = getDb();
+  try {
+    const [creator] = await db
+      .select({
+        username: schema.users.username,
+        displayName: schema.users.displayName,
+        avatarUrl: schema.users.avatarUrl,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, createdBy))
+      .limit(1);
+    return creator || null;
+  } catch {
+    return null;
+  }
+}
+
 async function getRelatedWatchesLegacy(
   watchId: number,
   brand: string,
@@ -317,12 +353,14 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function WatchDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const { userId: viewerClerkId } = await auth();
+  const isSignedIn = !!viewerClerkId;
 
   // 1. Try family lookup
   const family = await getFamilyBySlug(slug);
 
   if (family) {
-    return renderFamilyPage(family);
+    return renderFamilyPage(family, isSignedIn);
   }
 
   // 2. Legacy: single reference
@@ -345,10 +383,13 @@ async function renderFamilyPage(family: {
   description: string | null;
   imageUrl: string | null;
   isCommunitySubmitted: boolean;
+  createdBy: number | null;
+  updatedAt: Date | null;
+  editCount: number;
   createdAt: Date;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
-}) {
+}, isSignedIn: boolean = false) {
   // Safely read collection field
   const collectionName: string | null = hasCollectionField()
     ? (family as Record<string, unknown>).collection as string | null ?? null
@@ -357,7 +398,7 @@ async function renderFamilyPage(family: {
   const variations = await getVariationsForFamily(family.id);
   const variationIds = variations.map((v) => v.id);
 
-  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamilies, collectionSiblings] =
+  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamilies, collectionSiblings, creator] =
     await Promise.all([
       getCollectorCountsPerVariation(variationIds),
       getWishlistCountsPerVariation(variationIds),
@@ -365,6 +406,7 @@ async function renderFamilyPage(family: {
       getWishlistersForVariations(variationIds),
       getRelatedFamilies(family.brand, family.id),
       getCollectionSiblings(family.brand, collectionName, family.id),
+      getFamilyCreator(family.createdBy),
     ]);
 
   // Total counts across all variations
@@ -418,9 +460,43 @@ async function renderFamilyPage(family: {
             <p className="text-[11px] uppercase tracking-[3px] font-medium text-[rgba(26,24,20,0.4)] mb-2">
               {family.brand}
             </p>
-            <h1 className="text-[36px] sm:text-[48px] font-bold text-[#1a1814] leading-tight mb-3 font-serif">
-              {family.model}
-            </h1>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-[36px] sm:text-[48px] font-bold text-[#1a1814] leading-tight font-serif">
+                {family.model}
+              </h1>
+              {isSignedIn && (
+                <FamilyEditButton
+                  familyId={family.id}
+                  currentModel={family.model}
+                  currentDescription={family.description}
+                  currentImageUrl={family.imageUrl}
+                  currentCollection={collectionName}
+                />
+              )}
+            </div>
+
+            {/* Creator attribution */}
+            <p className="text-[12px] text-[rgba(26,24,20,0.35)] mb-3">
+              {creator ? (
+                <>
+                  Created by{" "}
+                  <Link href={`/${creator.username}`} className="underline underline-offset-2 hover:text-[#8a7a5a]">
+                    @{creator.username}
+                  </Link>
+                </>
+              ) : (
+                "Community cataloged"
+              )}
+              {family.editCount > 0 && (
+                <> &middot; {family.editCount} edit{family.editCount !== 1 ? "s" : ""}</>
+              )}
+              {family.updatedAt && (
+                <> &middot; Last updated {timeAgo(family.updatedAt)}</>
+              )}
+              {" &middot; "}
+              <HistoryButton targetType="family" targetId={family.id} />
+            </p>
+
             {family.description && (
               <p className="text-[15px] leading-relaxed text-[rgba(26,24,20,0.5)] font-serif italic">
                 {family.description}
@@ -490,17 +566,47 @@ async function renderFamilyPage(family: {
                       </p>
                     </div>
 
-                    {/* Collector count */}
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-[15px] font-bold text-[#1a1814]">{count}</p>
-                      <p className="text-[10px] text-[rgba(26,24,20,0.35)]">
-                        {count === 1 ? "collector" : "collectors"}
-                      </p>
+                    {/* Edit + Collector count */}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {isSignedIn && (
+                        <ReferenceEditButton
+                          referenceId={v.id}
+                          current={{
+                            reference: v.reference,
+                            sizeMm: v.sizeMm,
+                            movement: v.movement,
+                            material: v.material,
+                            color: v.color,
+                            category: v.category,
+                            braceletType: v.braceletType,
+                            shape: v.shape,
+                            waterResistanceM: v.waterResistanceM,
+                            crystal: v.crystal,
+                            caseBack: v.caseBack,
+                            origin: v.origin,
+                            description: v.description,
+                            imageUrl: v.imageUrl,
+                          }}
+                        />
+                      )}
+                      <div className="text-right">
+                        <p className="text-[15px] font-bold text-[#1a1814]">{count}</p>
+                        <p className="text-[10px] text-[rgba(26,24,20,0.35)]">
+                          {count === 1 ? "collector" : "collectors"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Add Variation button */}
+            {isSignedIn && (
+              <div className="mt-4 flex justify-center">
+                <AddVariationButton brand={family.brand} model={family.model} />
+              </div>
+            )}
           </section>
         )}
 

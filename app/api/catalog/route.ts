@@ -356,6 +356,49 @@ export async function POST(request: NextRequest) {
       .values(insertValues as typeof schema.watchReferences.$inferInsert)
       .returning();
 
+    // Log catalog edits for the creation
+    try {
+      const editEntries: Array<{
+        userId: number;
+        targetType: string;
+        targetId: number;
+        action: string;
+        fieldChanged: string | null;
+        oldValue: string | null;
+        newValue: string | null;
+      }> = [];
+
+      // Log reference creation
+      editEntries.push({
+        userId: user.id,
+        targetType: "reference",
+        targetId: watch.id,
+        action: "create",
+        fieldChanged: null,
+        oldValue: null,
+        newValue: `${trimmedBrand} ${trimmedModel} ${trimmedRef}`,
+      });
+
+      // If we created a new family (familyId was null before), log that too
+      if (!providedFamilyId && familyId) {
+        editEntries.push({
+          userId: user.id,
+          targetType: "family",
+          targetId: familyId,
+          action: "create",
+          fieldChanged: null,
+          oldValue: null,
+          newValue: `${trimmedBrand} ${trimmedModel}`,
+        });
+      }
+
+      if (editEntries.length > 0) {
+        await db.insert(schema.catalogEdits).values(editEntries);
+      }
+    } catch {
+      // Non-critical: don't fail the creation if edit logging fails
+    }
+
     return NextResponse.json({ watch }, { status: 201 });
   } catch (err) {
     const message =

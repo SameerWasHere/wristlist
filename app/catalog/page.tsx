@@ -5,6 +5,20 @@ import { CatalogGrid } from "./catalog-grid";
 import type { CatalogFamily } from "./catalog-grid";
 import Link from "next/link";
 
+function timeAgo(date: Date | null): string {
+  if (!date) return "";
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -78,8 +92,71 @@ async function getCatalogFamilies(): Promise<CatalogFamily[]> {
   }
 }
 
+async function getCatalogStats() {
+  try {
+    const db = getDb();
+    const [contributorResult] = await db
+      .select({ count: sql<number>`count(distinct ${schema.catalogEdits.userId})::int` })
+      .from(schema.catalogEdits);
+
+    const recentEdits = await db
+      .select({
+        id: schema.catalogEdits.id,
+        action: schema.catalogEdits.action,
+        targetType: schema.catalogEdits.targetType,
+        targetId: schema.catalogEdits.targetId,
+        fieldChanged: schema.catalogEdits.fieldChanged,
+        createdAt: schema.catalogEdits.createdAt,
+        username: schema.users.username,
+        displayName: schema.users.displayName,
+      })
+      .from(schema.catalogEdits)
+      .innerJoin(schema.users, eq(schema.catalogEdits.userId, schema.users.id))
+      .orderBy(desc(schema.catalogEdits.createdAt))
+      .limit(5);
+
+    // Enrich with watch names
+    const enriched = await Promise.all(
+      recentEdits.map(async (edit) => {
+        let watchName = "";
+        try {
+          const db2 = getDb();
+          if (edit.targetType === "family") {
+            const [f] = await db2
+              .select({ brand: schema.watchFamilies.brand, model: schema.watchFamilies.model })
+              .from(schema.watchFamilies)
+              .where(eq(schema.watchFamilies.id, edit.targetId))
+              .limit(1);
+            if (f) watchName = `${f.brand} ${f.model}`;
+          } else {
+            const [r] = await db2
+              .select({ brand: schema.watchReferences.brand, model: schema.watchReferences.model })
+              .from(schema.watchReferences)
+              .where(eq(schema.watchReferences.id, edit.targetId))
+              .limit(1);
+            if (r) watchName = `${r.brand} ${r.model}`;
+          }
+        } catch {
+          // ignore
+        }
+        return { ...edit, watchName };
+      }),
+    );
+
+    return {
+      contributorCount: contributorResult?.count ?? 0,
+      recentEdits: enriched,
+    };
+  } catch {
+    return { contributorCount: 0, recentEdits: [] };
+  }
+}
+
 export default async function CatalogPage() {
-  const families = await getCatalogFamilies();
+  const [families, stats] = await Promise.all([
+    getCatalogFamilies(),
+    getCatalogStats(),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
@@ -91,10 +168,45 @@ export default async function CatalogPage() {
           Discover
         </h1>
         <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-8">
-          Browse {families.length} watches across {new Set(families.map(f => f.brand)).size} brands.
+          {families.length} watches cataloged by {stats.contributorCount} contributor{stats.contributorCount !== 1 ? "s" : ""} across {new Set(families.map(f => f.brand)).size} brands.
         </p>
 
         <CatalogGrid families={families} />
+
+        {/* Recently Updated */}
+        {stats.recentEdits.length > 0 && (
+          <div className="mt-12 mb-8">
+            <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold mb-4">
+              Recently Updated
+            </h2>
+            <div className="bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] shadow-[0_2px_12px_rgba(26,24,20,0.03)] overflow-hidden">
+              {stats.recentEdits.map((edit, i) => (
+                <div
+                  key={edit.id}
+                  className={`flex items-center gap-3 px-4 py-3 ${
+                    i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] text-[#1a1814] truncate">
+                      <Link href={`/${edit.username}`} className="font-semibold hover:text-[#8a7a5a]">
+                        @{edit.username}
+                      </Link>{" "}
+                      {edit.action === "create" ? "added" : "edited"}{" "}
+                      <span className="font-medium">{edit.watchName || "a watch"}</span>
+                      {edit.action === "edit" && edit.fieldChanged && (
+                        <span className="text-[rgba(26,24,20,0.4)]"> ({edit.fieldChanged})</span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-[rgba(26,24,20,0.3)] flex-shrink-0">
+                    {timeAgo(edit.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* CTA at bottom */}
         <div className="mt-12 text-center">

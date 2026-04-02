@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { Nav } from "@/components/nav";
 import { ScoreRing } from "@/components/score-ring";
@@ -26,6 +26,20 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function timeAgo(date: Date | null): string {
+  if (!date) return "";
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
 
 function toAnalyticsWatch(w: {
   movement: string | null;
@@ -134,6 +148,75 @@ async function getProfileData(username: string) {
     // follows table may not exist yet
   }
 
+  // Catalog contributions
+  let catalogCreated = 0;
+  let catalogEditsCount = 0;
+  let recentContributions: Array<{
+    action: string;
+    targetType: string;
+    watchName: string;
+    createdAt: Date;
+  }> = [];
+
+  try {
+    const [createdResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.catalogEdits)
+      .where(
+        and(
+          eq(schema.catalogEdits.userId, user.id),
+          eq(schema.catalogEdits.action, "create"),
+        ),
+      );
+    catalogCreated = createdResult?.count ?? 0;
+
+    const [editsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.catalogEdits)
+      .where(eq(schema.catalogEdits.userId, user.id));
+    catalogEditsCount = editsResult?.count ?? 0;
+
+    const recentRows = await db
+      .select({
+        action: schema.catalogEdits.action,
+        targetType: schema.catalogEdits.targetType,
+        targetId: schema.catalogEdits.targetId,
+        createdAt: schema.catalogEdits.createdAt,
+      })
+      .from(schema.catalogEdits)
+      .where(eq(schema.catalogEdits.userId, user.id))
+      .orderBy(desc(schema.catalogEdits.createdAt))
+      .limit(5);
+
+    recentContributions = await Promise.all(
+      recentRows.map(async (r) => {
+        let watchName = "";
+        try {
+          if (r.targetType === "family") {
+            const [f] = await db
+              .select({ brand: schema.watchFamilies.brand, model: schema.watchFamilies.model })
+              .from(schema.watchFamilies)
+              .where(eq(schema.watchFamilies.id, r.targetId))
+              .limit(1);
+            if (f) watchName = `${f.brand} ${f.model}`;
+          } else {
+            const [ref] = await db
+              .select({ brand: schema.watchReferences.brand, model: schema.watchReferences.model })
+              .from(schema.watchReferences)
+              .where(eq(schema.watchReferences.id, r.targetId))
+              .limit(1);
+            if (ref) watchName = `${ref.brand} ${ref.model}`;
+          }
+        } catch {
+          // ignore
+        }
+        return { action: r.action, targetType: r.targetType, watchName, createdAt: r.createdAt };
+      }),
+    );
+  } catch {
+    // catalogEdits table may not exist yet
+  }
+
   const collectionAnalytics = collectionRows.map((r) =>
     toAnalyticsWatch(r.watch)
   );
@@ -224,6 +307,9 @@ async function getProfileData(username: string) {
     wishlistCompact,
     rankedWishlist,
     followerCount,
+    catalogCreated,
+    catalogEditsCount,
+    recentContributions,
   };
 }
 
@@ -289,6 +375,9 @@ export default async function ProfilePage({
     wishlistCompact,
     rankedWishlist,
     followerCount,
+    catalogCreated,
+    catalogEditsCount,
+    recentContributions,
   } = data;
 
   // Check if the logged-in user is viewing their own profile
@@ -554,6 +643,39 @@ export default async function ProfilePage({
                       {w.notes}
                     </p>
                   )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* -- Catalog Contributions ----------------------------------- */}
+        {catalogEditsCount > 0 && (
+          <section className="mb-14">
+            <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
+              <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
+                Catalog Contributions
+              </h2>
+              <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
+                {catalogCreated} created &middot; {catalogEditsCount - catalogCreated} edit{catalogEditsCount - catalogCreated !== 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {recentContributions.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-4 py-3 bg-white border border-[rgba(26,24,20,0.06)] rounded-[14px]"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] text-[#1a1814] truncate">
+                      {c.action === "create" ? "Created" : "Edited"}{" "}
+                      <span className="font-semibold">{c.watchName || "a watch"}</span>
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-[rgba(26,24,20,0.3)] flex-shrink-0">
+                    {timeAgo(c.createdAt)}
+                  </span>
                 </div>
               ))}
             </div>
