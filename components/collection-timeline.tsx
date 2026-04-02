@@ -19,6 +19,7 @@ interface TimelineWatch {
   color?: string;
   modifications?: string[];
   userWatchId?: number;
+  originNote?: string;
 }
 
 interface CollectionTimelineProps {

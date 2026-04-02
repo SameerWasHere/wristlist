@@ -13,6 +13,7 @@ import { EditableProfileHeader } from "./edit-profile-header";
 import { ProfileSearch } from "./profile-search";
 import { CollectionInsights } from "./collection-insights";
 import { WishlistEditButton } from "./wishlist-edit-button";
+import { PromoteButton } from "./promote-button";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
@@ -173,6 +174,7 @@ async function getProfileData(username: string) {
     color: r.watch.color || "default",
     modifications: (r.modifications as string[] | null) || undefined,
     userWatchId: r.id,
+    originNote: r.notes || undefined,
   }));
 
   // Simple wishlist for compact display (visitor)
@@ -472,6 +474,19 @@ export default async function ProfilePage({
                         Fills {w.gapsFilled} gap
                         {w.gapsFilled !== 1 ? "s" : ""}
                       </span>
+                    )}
+                    {w.userWatchId > 0 && (
+                      <PromoteButton
+                        userWatchId={w.userWatchId}
+                        brand={w.brand}
+                        model={w.model}
+                        reference={w.reference}
+                        category={w.category}
+                        sizeMm={w.sizeMm}
+                        movement={w.movement}
+                        origin={w.origin}
+                        wishlistNote={w.caption}
+                      />
                     )}
                     {w.userWatchId > 0 && (
                       <WishlistEditButton

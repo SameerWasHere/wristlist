@@ -39,6 +39,7 @@ interface TimelineEntryProps {
   isOwner?: boolean;
   userWatchId?: number;
   status?: "collection" | "wishlist";
+  originNote?: string;
 }
 
 export function TimelineEntry({
@@ -62,6 +63,7 @@ export function TimelineEntry({
   isOwner,
   userWatchId,
   status = "collection",
+  originNote,
 }: TimelineEntryProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -176,6 +178,13 @@ export function TimelineEntry({
           {milestone && (
             <p className="font-serif italic text-[12px] text-[#8a7a5a] mt-1">
               {milestone}
+            </p>
+          )}
+
+          {/* Origin note (from wishlist) */}
+          {originNote && (
+            <p className="text-[11px] text-[rgba(138,122,90,0.6)] mt-1 font-serif italic">
+              Originally wanted because: &ldquo;{originNote}&rdquo;
             </p>
           )}
 

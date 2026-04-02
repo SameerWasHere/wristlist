@@ -551,162 +551,171 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
             </div>
 
             {/* Photo upload */}
-            <div className="mb-5">
-              <label className={labelClass}>
-                Photos{" "}
-                <span className="text-[rgba(26,24,20,0.25)]">(optional, up to 3)</span>
-              </label>
-              <PhotoUpload
-                onUpload={(urls) => setPhotos(urls)}
-                maxPhotos={3}
-              />
-            </div>
+            {status === "collection" && (
+              <div className="mb-5">
+                <label className={labelClass}>
+                  Photos{" "}
+                  <span className="text-[rgba(26,24,20,0.25)]">(optional, up to 3)</span>
+                </label>
+                <PhotoUpload
+                  onUpload={(urls) => setPhotos(urls)}
+                  maxPhotos={3}
+                />
+              </div>
+            )}
 
-            {/* Caption */}
+            {/* Caption / Why I want this */}
             <div className="mb-5">
               <label className={labelClass}>
-                Caption{" "}
-                <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+                {status === "wishlist" ? (
+                  <>Why I want this{" "}<span className="text-[rgba(26,24,20,0.25)]">(optional)</span></>
+                ) : (
+                  <>Caption{" "}<span className="text-[rgba(26,24,20,0.25)]">(optional)</span></>
+                )}
               </label>
               <input
                 type="text"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                placeholder="My daily driver, grail achieved..."
+                placeholder={status === "wishlist" ? "My grail watch, would complete my diver collection..." : "My daily driver, grail achieved..."}
                 className={inputClass}
               />
             </div>
 
-            {/* Year fields side by side */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div>
-                <label className={labelClass}>
-                  Model Year
-                </label>
-                <input
-                  type="number"
-                  value={modelYear}
-                  onChange={(e) => setModelYear(e.target.value)}
-                  placeholder="e.g. 2024"
-                  min={1900}
-                  max={2099}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            {/* Date Acquired */}
-            <div className="mb-5">
-              <label className={labelClass}>
-                Date Acquired <span className="text-[rgba(26,24,20,0.2)] normal-case tracking-normal">(optional)</span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <select
-                  value={acquiredMonth}
-                  onChange={(e) => setAcquiredMonth(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Month</option>
-                  {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
-                    <option key={m} value={String(i + 1)}>{m}</option>
-                  ))}
-                </select>
-                <select
-                  value={acquiredDay}
-                  onChange={(e) => setAcquiredDay(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Day</option>
-                  {Array.from({ length: 31 }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  value={acquiredYear}
-                  onChange={(e) => setAcquiredYear(e.target.value)}
-                  placeholder="Year"
-                  min={1900}
-                  max={2099}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            {/* Milestone / Story */}
-            <div className="mb-5">
-              <label className={labelClass}>
-                The Story{" "}
-                <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={milestone}
-                onChange={(e) => setMilestone(e.target.value)}
-                placeholder="Wedding gift, first promotion, birthday treat..."
-                className={inputClass}
-              />
-            </div>
-
-            {/* Modifications */}
-            <div className="mb-8">
-              <label className={labelClass}>
-                Modifications{" "}
-                <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={modInput}
-                  onChange={(e) => setModInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddMod();
-                    }
-                  }}
-                  placeholder="e.g. aftermarket bezel"
-                  className="flex-1 px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
-                />
-                <button
-                  onClick={handleAddMod}
-                  className="px-4 py-2.5 text-[13px] font-semibold text-[#8a7a5a] bg-[rgba(26,24,20,0.04)] rounded-[12px] hover:bg-[rgba(26,24,20,0.08)] transition-colors"
-                >
-                  Add
-                </button>
-              </div>
-              {mods.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {mods.map((mod) => (
-                    <span
-                      key={mod}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-[8px] bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)]"
-                    >
-                      {mod}
-                      <button
-                        onClick={() => removeMod(mod)}
-                        className="hover:text-[rgba(26,24,20,0.8)] transition-colors"
-                        aria-label={`Remove ${mod}`}
-                      >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                      </button>
-                    </span>
-                  ))}
+            {status === "collection" && (
+              <>
+                {/* Year fields side by side */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div>
+                    <label className={labelClass}>
+                      Model Year
+                    </label>
+                    <input
+                      type="number"
+                      value={modelYear}
+                      onChange={(e) => setModelYear(e.target.value)}
+                      placeholder="e.g. 2024"
+                      min={1900}
+                      max={2099}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Date Acquired */}
+                <div className="mb-5">
+                  <label className={labelClass}>
+                    Date Acquired <span className="text-[rgba(26,24,20,0.2)] normal-case tracking-normal">(optional)</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={acquiredMonth}
+                      onChange={(e) => setAcquiredMonth(e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="">Month</option>
+                      {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                        <option key={m} value={String(i + 1)}>{m}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={acquiredDay}
+                      onChange={(e) => setAcquiredDay(e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="">Day</option>
+                      {Array.from({ length: 31 }, (_, i) => (
+                        <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      value={acquiredYear}
+                      onChange={(e) => setAcquiredYear(e.target.value)}
+                      placeholder="Year"
+                      min={1900}
+                      max={2099}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                {/* Milestone / Story */}
+                <div className="mb-5">
+                  <label className={labelClass}>
+                    The Story{" "}
+                    <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={milestone}
+                    onChange={(e) => setMilestone(e.target.value)}
+                    placeholder="Wedding gift, first promotion, birthday treat..."
+                    className={inputClass}
+                  />
+                </div>
+
+                {/* Modifications */}
+                <div className="mb-8">
+                  <label className={labelClass}>
+                    Modifications{" "}
+                    <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={modInput}
+                      onChange={(e) => setModInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddMod();
+                        }
+                      }}
+                      placeholder="e.g. aftermarket bezel"
+                      className="flex-1 px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                    />
+                    <button
+                      onClick={handleAddMod}
+                      className="px-4 py-2.5 text-[13px] font-semibold text-[#8a7a5a] bg-[rgba(26,24,20,0.04)] rounded-[12px] hover:bg-[rgba(26,24,20,0.08)] transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {mods.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {mods.map((mod) => (
+                        <span
+                          key={mod}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-[8px] bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)]"
+                        >
+                          {mod}
+                          <button
+                            onClick={() => removeMod(mod)}
+                            className="hover:text-[rgba(26,24,20,0.8)] transition-colors"
+                            aria-label={`Remove ${mod}`}
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Add button */}
             <button

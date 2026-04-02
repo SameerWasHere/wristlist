@@ -32,6 +32,7 @@ export async function PATCH(request: NextRequest) {
   if (body.acquiredDate !== undefined) updates.acquiredDate = body.acquiredDate || null;
   if (body.modifications !== undefined) updates.modifications = body.modifications || [];
   if (body.photos !== undefined) updates.photos = body.photos || [];
+  if (body.notes !== undefined) updates.notes = body.notes || null;
   if (body.status !== undefined && (body.status === "collection" || body.status === "wishlist")) {
     updates.status = body.status;
   }
