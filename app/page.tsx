@@ -2,7 +2,7 @@ import { Nav } from "@/components/nav";
 import { TopList } from "@/components/top-list";
 import { CollectorCard } from "@/components/collector-card";
 import { CtaBanner } from "@/components/cta-banner";
-import { WatchToolsLive } from "@/components/watch-tools-live";
+// Watch tools moved to /tools page
 import { HeroSection } from "./hero-section";
 import { getDb, schema } from "@/lib/db";
 import { eq, sql, desc } from "drizzle-orm";
@@ -145,8 +145,11 @@ async function getRecentActivity() {
         userName: schema.users.displayName,
         username: schema.users.username,
         status: schema.userWatches.status,
+        caption: schema.userWatches.caption,
         brand: schema.watchReferences.brand,
         model: schema.watchReferences.model,
+        slug: schema.watchReferences.slug,
+        imageUrl: schema.watchReferences.imageUrl,
         dateAdded: schema.userWatches.dateAdded,
       })
       .from(schema.userWatches)
@@ -160,7 +163,17 @@ async function getRecentActivity() {
       const action = r.status === "collection" ? "added" : "wishlisted";
       const watch = `${r.brand} ${r.model}`;
       const ago = timeAgo(r.dateAdded);
-      return { user: name, initial: name.charAt(0), action, watch, time: ago };
+      return {
+        user: name,
+        username: r.username,
+        initial: name.charAt(0),
+        action,
+        watch,
+        slug: r.slug,
+        caption: r.caption,
+        imageUrl: r.imageUrl,
+        time: ago,
+      };
     });
   } catch {
     return [];
@@ -248,37 +261,44 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Watch Tools — live display for setting your watch */}
-      <section id="tools" className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16 scroll-mt-16">
-        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-          Set Your Watch
-        </p>
-        <WatchToolsLive />
-      </section>
-
       {/* Recent Activity — only shows if real activity exists */}
       {hasActivity && (
         <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
           <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
             Recent Activity
           </p>
-          <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
+          <div className="flex flex-col gap-4">
             {activity.map((item, i) => (
               <div
                 key={i}
-                className={`flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 ${i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""}`}
+                className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-4 sm:p-5"
               >
-                <div className="w-9 h-9 rounded-full bg-[rgba(26,24,20,0.06)] flex items-center justify-center flex-shrink-0">
-                  <span className="text-[13px] font-bold text-[rgba(26,24,20,0.3)]">{item.initial}</span>
+                {/* Header: who did what */}
+                <div className="flex items-center gap-3 mb-2">
+                  <a href={`/${item.username}`} className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1a1814] to-[#2a2a30] flex items-center justify-center flex-shrink-0">
+                    <span className="text-[13px] font-bold text-white/70">{item.initial}</span>
+                  </a>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] text-foreground">
+                      <a href={`/${item.username}`} className="font-semibold hover:text-[#8a7a5a] transition-colors">{item.user}</a>{" "}
+                      <span className="text-[rgba(26,24,20,0.4)]">{item.action}</span>{" "}
+                      <a href={`/watch/${item.slug}`} className="font-medium text-[#8a7a5a] hover:underline">{item.watch}</a>
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-[rgba(26,24,20,0.25)] flex-shrink-0">{item.time}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] text-foreground truncate">
-                    <span className="font-semibold">{item.user}</span>{" "}
-                    <span className="text-[rgba(26,24,20,0.4)]">{item.action}</span>{" "}
-                    <span className="font-medium text-[#8a7a5a]">{item.watch}</span>
-                  </p>
-                </div>
-                <span className="text-[12px] text-[rgba(26,24,20,0.3)] flex-shrink-0">{item.time}</span>
+                {/* Caption */}
+                {item.caption && (
+                  <p className="text-[13px] text-[rgba(26,24,20,0.55)] mb-2 ml-12">&ldquo;{item.caption}&rdquo;</p>
+                )}
+                {/* Watch thumbnail */}
+                {item.imageUrl && (
+                  <a href={`/watch/${item.slug}`} className="block ml-12 mt-1">
+                    <div className="w-full max-w-[200px] h-[100px] rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] overflow-hidden">
+                      <img src={item.imageUrl} alt={item.watch} className="w-full h-full object-contain p-3" />
+                    </div>
+                  </a>
+                )}
               </div>
             ))}
           </div>

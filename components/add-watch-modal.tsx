@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
+import { PhotoUpload } from "@/components/photo-upload";
 
 export interface WatchData {
   id?: number;
@@ -19,10 +20,14 @@ export interface WatchData {
 }
 
 interface AddWatchModalProps {
-  watch: WatchData;
+  watch: WatchData | null;
   open: boolean;
   onClose: () => void;
 }
+
+const CATEGORIES = ["diver", "pilot", "dress", "field", "chronograph", "digital", "gmt"];
+const MOVEMENTS = ["automatic", "quartz", "battery", "solar", "manual wind"];
+const ORIGINS = ["Swiss", "Japanese", "German", "American", "Chinese"];
 
 export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const { isSignedIn } = useUser();
@@ -31,17 +36,29 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const [modelYear, setModelYear] = useState("");
   const [acquiredYear, setAcquiredYear] = useState("");
   const [milestone, setMilestone] = useState("");
+  const [caption, setCaption] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
   const [modInput, setModInput] = useState("");
   const [mods, setMods] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [animating, setAnimating] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+
+  // Manual entry fields
+  const [manualBrand, setManualBrand] = useState("");
+  const [manualModel, setManualModel] = useState("");
+  const [manualReference, setManualReference] = useState("");
+  const [manualCategory, setManualCategory] = useState("");
+  const [manualMovement, setManualMovement] = useState("");
+  const [manualSizeMm, setManualSizeMm] = useState("");
+  const [manualOrigin, setManualOrigin] = useState("");
+  const [creatingWatch, setCreatingWatch] = useState(false);
 
   // Handle open/close animation
   useEffect(() => {
     if (open) {
       setAnimating(true);
-      // Small delay so the element renders at its start position before transitioning
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setVisible(true);
@@ -88,13 +105,33 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     setMods((prev) => prev.filter((m) => m !== mod));
   }, []);
 
+  const resetForm = useCallback(() => {
+    setStatus("collection");
+    setModelYear("");
+    setAcquiredYear("");
+    setMilestone("");
+    setCaption("");
+    setPhotos([]);
+    setMods([]);
+    setModInput("");
+    setManualMode(false);
+    setManualBrand("");
+    setManualModel("");
+    setManualReference("");
+    setManualCategory("");
+    setManualMovement("");
+    setManualSizeMm("");
+    setManualOrigin("");
+  }, []);
+
   const [saving, setSaving] = useState(false);
 
   const handleAdd = useCallback(async () => {
+    // Determine which watch we're adding
+    let watchToAdd = watch;
     const label = status === "collection" ? "collection" : "wishlist";
     const endpoint = status === "collection" ? "/api/collection" : "/api/wishlist";
 
-    // If not signed in, trigger Clerk sign-in modal
     if (!isSignedIn) {
       onClose();
       clerk.openSignIn({
@@ -103,29 +140,75 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
       return;
     }
 
-    // Persist to DB
-    if (watch.id) {
+    // If manual mode, first create the watch reference
+    if (manualMode) {
+      if (!manualBrand.trim() || !manualModel.trim()) {
+        setToast("Brand and Model are required");
+        setTimeout(() => setToast(null), 3000);
+        return;
+      }
+
+      setCreatingWatch(true);
+      try {
+        const res = await fetch("/api/watches/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brand: manualBrand.trim(),
+            model: manualModel.trim(),
+            reference: manualReference.trim() || undefined,
+            category: manualCategory || undefined,
+            movement: manualMovement || undefined,
+            sizeMm: manualSizeMm ? parseFloat(manualSizeMm) : undefined,
+            origin: manualOrigin || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: "Failed to create watch" }));
+          setToast(data.error || "Failed to create watch");
+          setTimeout(() => setToast(null), 3000);
+          setCreatingWatch(false);
+          return;
+        }
+
+        const data = await res.json();
+        watchToAdd = data.watch;
+      } catch {
+        setToast("Something went wrong. Please try again.");
+        setTimeout(() => setToast(null), 3000);
+        setCreatingWatch(false);
+        return;
+      }
+      setCreatingWatch(false);
+    }
+
+    // Now add to collection/wishlist
+    if (watchToAdd?.id) {
       setSaving(true);
       try {
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            watchReferenceId: watch.id,
+            watchReferenceId: watchToAdd.id,
             modelYear: modelYear ? parseInt(modelYear) : undefined,
             acquiredYear: acquiredYear ? parseInt(acquiredYear) : undefined,
             milestone: milestone || undefined,
+            caption: caption || undefined,
+            photos: photos.length > 0 ? photos : undefined,
             modifications: mods.length > 0 ? mods : undefined,
           }),
         });
         if (res.status === 409) {
-          setToast(`${watch.brand} ${watch.model} is already in your ${label}`);
+          const brandName = watchToAdd.brand || manualBrand;
+          const modelName = watchToAdd.model || manualModel;
+          setToast(`${brandName} ${modelName} is already in your ${label}`);
           setTimeout(() => setToast(null), 3000);
           setSaving(false);
           return;
         }
         if (res.status === 403) {
-          // User needs to set up username first
           const data = await res.json();
           if (data.redirect) {
             onClose();
@@ -148,38 +231,50 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
       setSaving(false);
     }
 
-    setToast(`Added ${watch.brand} ${watch.model} to your ${label}!`);
+    const brandName = watchToAdd?.brand || manualBrand;
+    const modelName = watchToAdd?.model || manualModel;
+    setToast(`Added ${brandName} ${modelName} to your ${label}!`);
     setTimeout(() => {
       setToast(null);
     }, 3000);
     onClose();
-    setStatus("collection");
-    setModelYear("");
-    setAcquiredYear("");
-    setMilestone("");
-    setMods([]);
-    setModInput("");
-  }, [status, watch.brand, watch.model, watch.id, modelYear, acquiredYear, milestone, mods, onClose, isSignedIn, clerk]);
+    resetForm();
+  }, [status, watch, modelYear, acquiredYear, milestone, caption, photos, mods, onClose, isSignedIn, clerk, manualMode, manualBrand, manualModel, manualReference, manualCategory, manualMovement, manualSizeMm, manualOrigin, resetForm]);
 
   if (!animating && !open) return null;
 
-  const specs = [
-    watch.category,
-    watch.sizeMm ? `${watch.sizeMm}mm` : null,
-    watch.movement,
-    watch.origin,
-    watch.crystal,
-    watch.braceletType,
-    watch.material,
-  ].filter(Boolean);
+  // When in manual mode and no watch prop, show manual form
+  const showManualForm = manualMode && !watch;
+
+  const displayWatch = watch;
+
+  const specs = displayWatch
+    ? [
+        displayWatch.category,
+        displayWatch.sizeMm ? `${displayWatch.sizeMm}mm` : null,
+        displayWatch.movement,
+        displayWatch.origin,
+        displayWatch.crystal,
+        displayWatch.braceletType,
+        displayWatch.material,
+      ].filter(Boolean)
+    : [];
 
   const buttonLabel = !isSignedIn
     ? "Sign in to Add"
-    : saving
+    : saving || creatingWatch
       ? "Saving..."
       : status === "collection"
         ? "Add to Collection"
         : "Add to Wishlist";
+
+  const inputClass =
+    "w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]";
+
+  const selectClass =
+    "w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors text-[#1a1814] appearance-none";
+
+  const labelClass = "text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block";
 
   return (
     <>
@@ -231,35 +326,191 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
               </button>
             </div>
 
-            {/* Watch header */}
-            <div className="mb-6">
-              <p className="text-[10px] uppercase tracking-[2px] font-medium text-[rgba(26,24,20,0.4)] mb-1">
-                {watch.brand}
-              </p>
-              <h2 className="text-[24px] font-bold text-[#1a1814] leading-tight mb-1">
-                {watch.model}
-              </h2>
-              <p className="text-[13px] font-mono text-[rgba(26,24,20,0.35)]">
-                {watch.reference}
-              </p>
-            </div>
+            {/* ---- Watch Header or Manual Form ---- */}
+            {showManualForm ? (
+              <>
+                <div className="mb-6">
+                  <p className="text-[10px] uppercase tracking-[2px] font-medium text-[rgba(26,24,20,0.4)] mb-1">
+                    Community Submission
+                  </p>
+                  <h2 className="text-[24px] font-bold text-[#1a1814] leading-tight mb-1">
+                    Add Your Watch
+                  </h2>
+                  <p className="text-[13px] text-[rgba(26,24,20,0.4)]">
+                    Fill in what you know -- we&apos;ll add it to the catalog.
+                  </p>
+                </div>
 
-            {/* Specs tags */}
-            {specs.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-8">
-                {specs.map((spec) => (
-                  <span
-                    key={spec}
-                    className="px-3 py-1.5 text-[11px] font-medium rounded-[8px] bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)]"
-                  >
-                    {spec}
-                  </span>
-                ))}
-              </div>
+                {/* Manual entry fields */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className={labelClass}>
+                      Brand <span className="text-[#8a7a5a]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={manualBrand}
+                      onChange={(e) => setManualBrand(e.target.value)}
+                      placeholder="e.g. Omega"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>
+                      Model <span className="text-[#8a7a5a]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={manualModel}
+                      onChange={(e) => setManualModel(e.target.value)}
+                      placeholder="e.g. Seamaster"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className={labelClass}>
+                    Reference <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={manualReference}
+                    onChange={(e) => setManualReference(e.target.value)}
+                    placeholder="e.g. 210.30.42.20.06.001"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className={labelClass}>Category</label>
+                    <select
+                      value={manualCategory}
+                      onChange={(e) => setManualCategory(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="">Select...</option>
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Movement</label>
+                    <select
+                      value={manualMovement}
+                      onChange={(e) => setManualMovement(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="">Select...</option>
+                      {MOVEMENTS.map((m) => (
+                        <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  <div>
+                    <label className={labelClass}>Size (mm)</label>
+                    <input
+                      type="number"
+                      value={manualSizeMm}
+                      onChange={(e) => setManualSizeMm(e.target.value)}
+                      placeholder="e.g. 42"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Origin</label>
+                    <select
+                      value={manualOrigin}
+                      onChange={(e) => setManualOrigin(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="">Select...</option>
+                      {ORIGINS.map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Back link */}
+                <button
+                  onClick={() => setManualMode(false)}
+                  className="text-[13px] text-[#8a7a5a] hover:underline mb-4 block"
+                >
+                  &larr; Back to search
+                </button>
+
+                <div className="border-t border-[rgba(26,24,20,0.06)] mb-6" />
+              </>
+            ) : displayWatch ? (
+              <>
+                {/* Watch header */}
+                <div className="mb-6">
+                  <p className="text-[10px] uppercase tracking-[2px] font-medium text-[rgba(26,24,20,0.4)] mb-1">
+                    {displayWatch.brand}
+                  </p>
+                  <h2 className="text-[24px] font-bold text-[#1a1814] leading-tight mb-1">
+                    {displayWatch.model}
+                  </h2>
+                  <p className="text-[13px] font-mono text-[rgba(26,24,20,0.35)]">
+                    {displayWatch.reference}
+                  </p>
+                </div>
+
+                {/* Specs tags */}
+                {specs.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {specs.map((spec) => (
+                      <span
+                        key={spec}
+                        className="px-3 py-1.5 text-[11px] font-medium rounded-[8px] bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.5)]"
+                      >
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Manual entry link */}
+                <button
+                  onClick={() => {
+                    setManualMode(true);
+                    // Clear the watch prop by closing and re-opening in manual mode
+                  }}
+                  className="text-[13px] text-[#8a7a5a] hover:underline mb-4 block"
+                >
+                  Don&apos;t see your watch? Add it manually
+                </button>
+
+                <div className="border-t border-[rgba(26,24,20,0.06)] mb-6" />
+              </>
+            ) : (
+              <>
+                {/* No watch selected — prompt manual entry */}
+                <div className="mb-6">
+                  <h2 className="text-[24px] font-bold text-[#1a1814] leading-tight mb-1">
+                    Add a Watch
+                  </h2>
+                  <p className="text-[13px] text-[rgba(26,24,20,0.4)]">
+                    Search for a watch or add one manually.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setManualMode(true)}
+                  className="w-full py-3 text-[14px] font-semibold text-[#8a7a5a] bg-[rgba(138,122,90,0.08)] rounded-[12px] hover:bg-[rgba(138,122,90,0.12)] transition-colors mb-6"
+                >
+                  Don&apos;t see your watch? Add it manually
+                </button>
+
+                <div className="border-t border-[rgba(26,24,20,0.06)] mb-6" />
+              </>
             )}
-
-            {/* Divider */}
-            <div className="border-t border-[rgba(26,24,20,0.06)] mb-6" />
 
             {/* Personalize section */}
             <p className="text-[11px] uppercase tracking-[2px] font-medium text-[rgba(26,24,20,0.3)] mb-4">
@@ -295,10 +546,37 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
               </div>
             </div>
 
+            {/* Photo upload */}
+            <div className="mb-5">
+              <label className={labelClass}>
+                Photos{" "}
+                <span className="text-[rgba(26,24,20,0.25)]">(optional, up to 3)</span>
+              </label>
+              <PhotoUpload
+                onUpload={(urls) => setPhotos(urls)}
+                maxPhotos={3}
+              />
+            </div>
+
+            {/* Caption */}
+            <div className="mb-5">
+              <label className={labelClass}>
+                Caption{" "}
+                <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="My daily driver, grail achieved..."
+                className={inputClass}
+              />
+            </div>
+
             {/* Year fields side by side */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div>
-                <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
+                <label className={labelClass}>
                   Model Year
                 </label>
                 <input
@@ -308,11 +586,11 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                   placeholder="e.g. 2024"
                   min={1900}
                   max={2099}
-                  className="w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                  className={inputClass}
                 />
               </div>
               <div>
-                <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
+                <label className={labelClass}>
                   Year Acquired
                 </label>
                 <input
@@ -322,14 +600,14 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                   placeholder="e.g. 2023"
                   min={1900}
                   max={2099}
-                  className="w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             {/* Milestone / Story */}
             <div className="mb-5">
-              <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
+              <label className={labelClass}>
                 The Story{" "}
                 <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
               </label>
@@ -338,13 +616,13 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                 value={milestone}
                 onChange={(e) => setMilestone(e.target.value)}
                 placeholder="Wedding gift, first promotion, birthday treat..."
-                className="w-full px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                className={inputClass}
               />
             </div>
 
             {/* Modifications */}
             <div className="mb-8">
-              <label className="text-[12px] font-medium text-[rgba(26,24,20,0.5)] mb-2 block">
+              <label className={labelClass}>
                 Modifications{" "}
                 <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
               </label>
@@ -360,7 +638,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                     }
                   }}
                   placeholder="e.g. aftermarket bezel"
-                  className="flex-1 px-4 py-2.5 text-[14px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
+                  className="flex-1 px-4 py-2.5 text-[16px] bg-white border border-[rgba(26,24,20,0.08)] rounded-[12px] focus:outline-none focus:border-[rgba(138,122,90,0.5)] focus:ring-1 focus:ring-[rgba(138,122,90,0.5)] transition-colors placeholder:text-[rgba(26,24,20,0.2)]"
                 />
                 <button
                   onClick={handleAddMod}
@@ -405,7 +683,8 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
             {/* Add button */}
             <button
               onClick={handleAdd}
-              className="w-full py-3.5 text-[15px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:bg-[#2a2824] active:scale-[0.98] transition-all duration-200"
+              disabled={saving || creatingWatch}
+              className="w-full py-3.5 text-[15px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:bg-[#2a2824] active:scale-[0.98] transition-all duration-200 disabled:opacity-50"
             >
               {buttonLabel}
             </button>

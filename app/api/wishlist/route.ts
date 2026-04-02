@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { watchReferenceId } = body;
+  const { watchReferenceId, caption, photos } = body;
 
   if (!watchReferenceId) {
     return NextResponse.json({ error: "watchReferenceId is required" }, { status: 400 });
@@ -116,6 +116,8 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       watchReferenceId,
       status: "wishlist",
+      caption: caption || null,
+      photos: photos || [],
     })
     .returning();
 
