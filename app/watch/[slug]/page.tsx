@@ -6,6 +6,7 @@ import { getDb, schema } from "@/lib/db";
 import { eq, sql, and, ne, inArray } from "drizzle-orm";
 import { FamilyEditButton, ReferenceEditButton, HistoryButton } from "./community-features";
 import { AddVariationButton } from "./add-variation-button";
+import { CatalogImageUpload } from "@/components/catalog-image-upload";
 
 export const dynamic = "force-dynamic";
 
@@ -428,8 +429,8 @@ async function renderFamilyPage(family: {
   // Build a reference-id-to-ref map for showing which ref each collector owns
   const refMap = new Map(variations.map((v) => [v.id, v]));
 
-  // Hero image: family imageUrl, or featured variation imageUrl
-  const heroImage = family.imageUrl || featured?.imageUrl || null;
+  // Hero image: prefer the most-collected variation's image, then family imageUrl
+  const heroImage = featured?.imageUrl || family.imageUrl || null;
 
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
@@ -523,17 +524,25 @@ async function renderFamilyPage(family: {
                     } ${isFeatured ? "bg-[rgba(138,122,90,0.04)]" : "hover:bg-[rgba(26,24,20,0.015)]"}`}
                   >
                     {/* Thumb */}
-                    <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {v.imageUrl ? (
-                        <img
-                          src={v.imageUrl}
-                          alt={`${v.brand} ${v.model}`}
-                          className="w-full h-full object-contain p-1"
+                    <div className="relative flex-shrink-0">
+                      <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center overflow-hidden">
+                        {v.imageUrl ? (
+                          <img
+                            src={v.imageUrl}
+                            alt={`${v.brand} ${v.model}`}
+                            className="w-full h-full object-contain p-1"
+                          />
+                        ) : (
+                          <span className="text-white/20 text-[13px] font-bold font-mono">
+                            {v.reference?.slice(0, 3) || v.brand.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      {isSignedIn && (
+                        <CatalogImageUpload
+                          referenceId={v.id}
+                          currentImageUrl={v.imageUrl}
                         />
-                      ) : (
-                        <span className="text-white/20 text-[13px] font-bold font-mono">
-                          {v.reference?.slice(0, 3) || v.brand.charAt(0)}
-                        </span>
                       )}
                     </div>
 
