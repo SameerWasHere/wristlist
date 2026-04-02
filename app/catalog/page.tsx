@@ -23,6 +23,7 @@ async function getCatalogFamilies(): Promise<CatalogFamily[]> {
         collectorCount: sql<number>`count(distinct case when ${schema.userWatches.status} = 'collection' then ${schema.userWatches.userId} end)::int`,
         topCategory: sql<string | null>`mode() within group (order by ${schema.watchReferences.category})`,
         topOrigin: sql<string | null>`mode() within group (order by ${schema.watchReferences.origin})`,
+        avgPrice: sql<number | null>`avg(${schema.watchReferences.retailPrice})::int`,
       })
       .from(schema.watchFamilies)
       .leftJoin(
@@ -55,11 +56,11 @@ export default async function CatalogPage() {
 
       <section className="max-w-[960px] mx-auto px-4 sm:px-6 py-12">
         {/* Page title */}
-        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-2">
-          Watch Catalog
-        </p>
-        <p className="text-[14px] text-[rgba(26,24,20,0.45)] mb-8">
-          Browse all {families.length} watches in the WristList catalog.
+        <h1 className="font-serif italic text-[28px] sm:text-[36px] text-foreground tracking-tight mb-1">
+          Discover
+        </h1>
+        <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-8">
+          Browse {families.length} watches across {new Set(families.map(f => f.brand)).size} brands.
         </p>
 
         <CatalogGrid families={families} />
