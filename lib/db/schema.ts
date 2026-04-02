@@ -37,6 +37,10 @@ export const watchReferences = pgTable(
     retailPrice: integer("retail_price"),
     description: text("description"),
     imageUrl: text("image_url"),
+    createdBy: integer("created_by").references(() => users.id),
+    isCommunitySubmitted: boolean("is_community_submitted")
+      .default(false)
+      .notNull(),
   },
   (table) => [uniqueIndex("watch_references_slug_idx").on(table.slug)],
 );
@@ -52,6 +56,8 @@ export const users = pgTable(
     username: text("username").notNull(),
     displayName: text("display_name"),
     bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    websiteUrl: text("website_url"),
     collectingSince: integer("collecting_since"),
     showValuePublicly: boolean("show_value_publicly").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -97,5 +103,31 @@ export const userWatches = pgTable("user_watches", {
   acquiredYear: integer("acquired_year"),
   milestone: text("milestone"), // e.g. "Wedding gift", "Graduation 2019", "First bonus"
   notes: text("notes"),
+  caption: text("caption"),
+  photos: jsonb("photos").$type<string[]>().default([]),
+  isPublic: boolean("is_public").default(true).notNull(),
   dateAdded: timestamp("date_added").defaultNow().notNull(),
 });
+
+// ---------------------------------------------------------------------------
+// follows — social graph for user-to-user follows
+// ---------------------------------------------------------------------------
+export const follows = pgTable(
+  "follows",
+  {
+    id: serial("id").primaryKey(),
+    followerId: integer("follower_id")
+      .notNull()
+      .references(() => users.id),
+    followingId: integer("following_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("follows_follower_following_idx").on(
+      table.followerId,
+      table.followingId,
+    ),
+  ],
+);
