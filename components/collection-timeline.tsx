@@ -78,6 +78,7 @@ export function CollectionTimeline({ watches, isOwner }: CollectionTimelineProps
                   key={`${watch.slug}-${watch.reference}-${watch.userWatchId}`}
                   {...watch}
                   isOwner={isOwner}
+                  status="collection"
                 />
               ))}
             </div>

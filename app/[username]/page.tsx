@@ -12,6 +12,7 @@ import { RemoveWatchButton } from "@/components/remove-watch-button";
 import { EditableProfileHeader } from "./edit-profile-header";
 import { ProfileSearch } from "./profile-search";
 import { CollectionInsights } from "./collection-insights";
+import { WishlistEditButton } from "./wishlist-edit-button";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
@@ -98,6 +99,12 @@ async function getProfileData(username: string) {
     .select({
       id: schema.userWatches.id,
       notes: schema.userWatches.notes,
+      caption: schema.userWatches.caption,
+      milestone: schema.userWatches.milestone,
+      modelYear: schema.userWatches.modelYear,
+      acquiredYear: schema.userWatches.acquiredYear,
+      modifications: schema.userWatches.modifications,
+      photos: schema.userWatches.photos,
       watch: schema.watchReferences,
     })
     .from(schema.userWatches)
@@ -184,6 +191,17 @@ async function getProfileData(username: string) {
       userWatchId: row?.id ?? 0,
       brand: item.watch.brand,
       model: item.watch.model,
+      reference: row?.watch.reference || "",
+      category: row?.watch.category || undefined,
+      sizeMm: row?.watch.sizeMm || undefined,
+      movement: row?.watch.movement || undefined,
+      origin: row?.watch.origin || undefined,
+      caption: row?.caption || undefined,
+      milestone: row?.milestone || undefined,
+      modelYear: row?.modelYear || undefined,
+      acquiredYear: row?.acquiredYear || undefined,
+      modifications: (row?.modifications as string[] | null) || undefined,
+      photos: (row?.photos as string[] | null) || undefined,
       gapsFilled: item.gapsFilled,
     };
   });
@@ -445,12 +463,30 @@ export default async function ProfilePage({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {w.gapsFilled > 0 && (
-                      <span className="text-[9px] font-bold text-[#6b8f4e]">
+                      <span className="text-[9px] font-bold text-[#6b8f4e] mr-1">
                         Fills {w.gapsFilled} gap
                         {w.gapsFilled !== 1 ? "s" : ""}
                       </span>
+                    )}
+                    {w.userWatchId > 0 && (
+                      <WishlistEditButton
+                        userWatchId={w.userWatchId}
+                        brand={w.brand}
+                        model={w.model}
+                        reference={w.reference}
+                        category={w.category}
+                        sizeMm={w.sizeMm}
+                        movement={w.movement}
+                        origin={w.origin}
+                        caption={w.caption}
+                        milestone={w.milestone}
+                        modelYear={w.modelYear}
+                        acquiredYear={w.acquiredYear}
+                        modifications={w.modifications}
+                        photos={w.photos}
+                      />
                     )}
                     {w.userWatchId > 0 && (
                       <RemoveWatchButton

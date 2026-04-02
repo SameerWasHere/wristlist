@@ -5,6 +5,7 @@ import { useState, useRef, useCallback } from "react";
 interface PhotoUploadProps {
   onUpload: (urls: string[]) => void;
   maxPhotos?: number;
+  existingPhotos?: string[];
 }
 
 interface UploadedPhoto {
@@ -18,8 +19,10 @@ interface UploadingPhoto {
   progress: number;
 }
 
-export function PhotoUpload({ onUpload, maxPhotos = 3 }: PhotoUploadProps) {
-  const [uploaded, setUploaded] = useState<UploadedPhoto[]>([]);
+export function PhotoUpload({ onUpload, maxPhotos = 3, existingPhotos }: PhotoUploadProps) {
+  const [uploaded, setUploaded] = useState<UploadedPhoto[]>(
+    () => (existingPhotos || []).map((url) => ({ url, preview: url }))
+  );
   const [uploading, setUploading] = useState<UploadingPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);

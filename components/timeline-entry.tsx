@@ -1,5 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { RemoveWatchInline } from "@/components/remove-watch-inline";
+import { EditWatchModal } from "@/components/edit-watch-modal";
 
 const colorGradients: Record<string, string> = {
   black: "linear-gradient(135deg, #0a0a0a, #1a2332)",
@@ -32,6 +37,7 @@ interface TimelineEntryProps {
   modifications?: string[];
   isOwner?: boolean;
   userWatchId?: number;
+  status?: "collection" | "wishlist";
 }
 
 export function TimelineEntry({
@@ -53,7 +59,10 @@ export function TimelineEntry({
   modifications,
   isOwner,
   userWatchId,
+  status = "collection",
 }: TimelineEntryProps) {
+  const router = useRouter();
+  const [editOpen, setEditOpen] = useState(false);
   const gradient = colorGradients[color] || colorGradients.default;
   const initial = brand.charAt(0).toUpperCase();
   const hasUserPhoto = photos && photos.length > 0;
@@ -114,8 +123,8 @@ export function TimelineEntry({
             {/* Owner actions: edit + remove */}
             {isOwner && userWatchId && (
               <div className="flex items-center gap-0.5 flex-shrink-0">
-                <Link
-                  href={`/dashboard`}
+                <button
+                  onClick={() => setEditOpen(true)}
                   className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[rgba(26,24,20,0.04)] transition-colors"
                   title="Edit this watch"
                 >
@@ -123,7 +132,7 @@ export function TimelineEntry({
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
-                </Link>
+                </button>
                 <RemoveWatchInline userWatchId={userWatchId} />
               </div>
             )}
@@ -182,6 +191,32 @@ export function TimelineEntry({
             </div>
           ))}
         </div>
+      )}
+
+      {/* Edit modal */}
+      {isOwner && userWatchId && (
+        <EditWatchModal
+          open={editOpen}
+          onClose={() => {
+            setEditOpen(false);
+            router.refresh();
+          }}
+          userWatchId={userWatchId}
+          brand={brand}
+          model={model}
+          reference={reference}
+          category={category}
+          sizeMm={sizeMm}
+          movement={movement}
+          origin={origin}
+          currentCaption={caption}
+          currentMilestone={milestone}
+          currentModelYear={modelYear}
+          currentAcquiredYear={acquiredYear}
+          currentModifications={modifications}
+          currentPhotos={photos}
+          currentStatus={status}
+        />
       )}
     </div>
   );
