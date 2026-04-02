@@ -2,11 +2,13 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq, and, sql } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { Nav } from "@/components/nav";
 import { ScoreRing } from "@/components/score-ring";
 import { DnaTags } from "@/components/dna-tags";
 import { CollectionTimeline } from "@/components/collection-timeline";
 import { FollowButton } from "@/components/follow-button";
+import { EditProfileHeader } from "./edit-profile-header";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
@@ -230,6 +232,10 @@ export default async function ProfilePage({
     followerCount,
   } = data;
 
+  // Check if the logged-in user is viewing their own profile
+  const { userId: viewerClerkId } = await auth();
+  const isOwner = viewerClerkId ? user.clerkId === viewerClerkId : false;
+
   const displayName = user.displayName || user.username;
   const hasWatches = collectionRows.length > 0 || wishlistRows.length > 0;
   const initial = displayName.charAt(0).toUpperCase();
@@ -242,7 +248,16 @@ export default async function ProfilePage({
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,0,0,0.08)] to-transparent mb-10" />
 
         {/* ── Profile Header ─────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
+        <div className="relative flex flex-col sm:flex-row gap-6 sm:gap-10 mb-10">
+          {/* Edit button (owner only) */}
+          {isOwner && (
+            <EditProfileHeader
+              currentDisplayName={displayName}
+              currentBio={user.bio || ""}
+              currentCollectingSince={user.collectingSince || undefined}
+            />
+          )}
+
           {/* Left: Avatar + name + bio */}
           <div className="flex items-start gap-4 flex-1">
             {/* Avatar */}
@@ -273,16 +288,30 @@ export default async function ProfilePage({
                   {user.bio}
                 </p>
               )}
+              {isOwner && !user.bio && (
+                <p className="text-[13px] text-[rgba(26,24,20,0.2)] italic">
+                  Add a bio — tell people about your watch journey
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Right: Follow button */}
-          <div className="flex-shrink-0 flex items-start">
-            <FollowButton
-              userId={user.id}
-              isFollowing={false}
-              followerCount={followerCount}
-            />
+          {/* Right: Follow button (hide on own profile) or Settings link */}
+          <div className="flex-shrink-0 flex items-start gap-3">
+            {isOwner ? (
+              <Link
+                href="/settings"
+                className="px-5 py-2 text-[12px] font-semibold border border-[rgba(26,24,20,0.12)] rounded-full text-[rgba(26,24,20,0.5)] hover:border-[rgba(26,24,20,0.25)] hover:text-foreground transition-colors"
+              >
+                Settings
+              </Link>
+            ) : (
+              <FollowButton
+                userId={user.id}
+                isFollowing={false}
+                followerCount={followerCount}
+              />
+            )}
           </div>
         </div>
 
@@ -316,18 +345,40 @@ export default async function ProfilePage({
         )}
 
         {/* ── The Collection (Timeline) ──────────────────── */}
-        {collectionRows.length > 0 && (
+        {(collectionRows.length > 0 || isOwner) && (
           <section className="mb-14">
             <div className="flex justify-between items-baseline mb-6 pb-3 border-b border-[rgba(26,24,20,0.06)]">
               <h2 className="text-[12px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-semibold">
                 The Collection
               </h2>
-              <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
-                {collectionRows.length} piece
-                {collectionRows.length !== 1 ? "s" : ""}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
+                  {collectionRows.length} piece
+                  {collectionRows.length !== 1 ? "s" : ""}
+                </span>
+                {isOwner && (
+                  <Link
+                    href="/dashboard"
+                    className="text-[11px] font-semibold text-[#8a7a5a] hover:underline"
+                  >
+                    + Add watch
+                  </Link>
+                )}
+              </div>
             </div>
-            <CollectionTimeline watches={collectionForTimeline} />
+            {collectionRows.length > 0 ? (
+              <CollectionTimeline watches={collectionForTimeline} />
+            ) : isOwner ? (
+              <div className="border border-dashed border-[rgba(26,24,20,0.1)] rounded-[20px] py-12 text-center">
+                <p className="text-[15px] text-[rgba(26,24,20,0.3)] mb-3">Your collection is empty</p>
+                <Link
+                  href="/dashboard"
+                  className="inline-block px-6 py-2.5 text-[13px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity"
+                >
+                  Add your first watch
+                </Link>
+              </div>
+            ) : null}
           </section>
         )}
 
