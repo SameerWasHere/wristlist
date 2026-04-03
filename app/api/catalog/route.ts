@@ -197,36 +197,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Rate limit: count recent community submissions by this user
-  try {
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.watchReferences)
-      .innerJoin(
-        schema.watchFamilies,
-        eq(schema.watchReferences.familyId, schema.watchFamilies.id),
-      )
-      .where(
-        and(
-          eq(schema.watchReferences.createdBy, user.id),
-          sql`${schema.watchFamilies.createdAt} > ${oneDayAgo}`,
-        ),
-      );
-
-    if (countResult && countResult.count >= 5) {
-      return NextResponse.json(
-        {
-          error:
-            "You've added 5 watches today. Try again tomorrow.",
-        },
-        { status: 429 },
-      );
-    }
-  } catch {
-    // If rate limit check fails (e.g. table issues), allow the request
-  }
+  // Rate limiting removed for now — can re-enable later when needed
 
   const body = await request.json();
   const {
