@@ -5,9 +5,10 @@ import Link from "next/link";
 
 interface HeroSectionProps {
   profileUrl?: string;
+  stats?: { watches: number; brands: number; collectors: number };
 }
 
-export function HeroSection({ profileUrl = "/dashboard" }: HeroSectionProps) {
+export function HeroSection({ profileUrl = "/dashboard", stats }: HeroSectionProps) {
   const { isSignedIn } = useUser();
 
   return (
@@ -18,6 +19,40 @@ export function HeroSection({ profileUrl = "/dashboard" }: HeroSectionProps) {
       <p className="text-[17px] sm:text-[20px] font-serif italic text-[rgba(26,24,20,0.4)] mt-4">
         Every collection tells a story. What&apos;s yours?
       </p>
+      <p className="text-[14px] text-[rgba(26,24,20,0.35)] mt-3 max-w-md mx-auto">
+        Track your watches. Build your wishlist. See how your taste compares.
+      </p>
+
+      {/* Live stats */}
+      {stats && (stats.watches > 0 || stats.collectors > 0) && (
+        <div className="flex items-center justify-center gap-6 mt-6">
+          {stats.watches > 0 && (
+            <div>
+              <p className="text-[20px] font-bold text-[#1a1814]">{stats.watches.toLocaleString()}+</p>
+              <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)]">Watches</p>
+            </div>
+          )}
+          {stats.brands > 0 && (
+            <>
+              <div className="w-px h-8 bg-[rgba(26,24,20,0.08)]" />
+              <div>
+                <p className="text-[20px] font-bold text-[#1a1814]">{stats.brands}+</p>
+                <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)]">Brands</p>
+              </div>
+            </>
+          )}
+          {stats.collectors > 0 && (
+            <>
+              <div className="w-px h-8 bg-[rgba(26,24,20,0.08)]" />
+              <div>
+                <p className="text-[20px] font-bold text-[#1a1814]">{stats.collectors}</p>
+                <p className="text-[10px] uppercase tracking-[2px] text-[rgba(26,24,20,0.3)]">Collectors</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {isSignedIn ? (
         <Link
           href={profileUrl}
@@ -26,11 +61,19 @@ export function HeroSection({ profileUrl = "/dashboard" }: HeroSectionProps) {
           View Your Profile
         </Link>
       ) : (
-        <SignInButton mode="modal">
-          <button className="mt-8 px-8 py-3 bg-[#1a1814] text-[#f6f4ef] text-[14px] font-semibold rounded-full hover:opacity-90 transition-opacity cursor-pointer">
-            Start Your Collection
-          </button>
-        </SignInButton>
+        <div className="flex items-center justify-center gap-3 mt-8">
+          <SignInButton mode="modal">
+            <button className="px-8 py-3 bg-[#1a1814] text-[#f6f4ef] text-[14px] font-semibold rounded-full hover:opacity-90 transition-opacity cursor-pointer">
+              Start Your Collection
+            </button>
+          </SignInButton>
+          <Link
+            href="/catalog"
+            className="px-6 py-3 text-[14px] font-medium text-[rgba(26,24,20,0.5)] border border-[rgba(26,24,20,0.12)] rounded-full hover:border-[rgba(26,24,20,0.25)] transition-colors"
+          >
+            Browse Catalog
+          </Link>
+        </div>
       )}
     </section>
   );
