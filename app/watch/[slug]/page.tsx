@@ -6,7 +6,7 @@ import { getDb, schema } from "@/lib/db";
 import { eq, sql, and, ne, inArray } from "drizzle-orm";
 import { FamilyEditButton, ReferenceEditButton, HistoryButton } from "./community-features";
 import { AddVariationButton } from "./add-variation-button";
-import { CatalogImageUpload } from "@/components/catalog-image-upload";
+import { VariationRow } from "./variation-row";
 
 export const dynamic = "force-dynamic";
 
@@ -513,103 +513,33 @@ async function renderFamilyPage(family: {
               {variations.length} {variations.length === 1 ? "Variation" : "Variations"}
             </p>
             <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
-              {variations.map((v, i) => {
-                const count = collectorCounts.get(v.id) || 0;
-                const isFeatured = featured && v.id === featured.id;
-                return (
-                  <div
-                    key={v.id}
-                    className={`flex items-center gap-4 px-5 py-4 transition-colors ${
-                      i > 0 ? "border-t border-[rgba(26,24,20,0.06)]" : ""
-                    } ${isFeatured ? "bg-[rgba(138,122,90,0.04)]" : "hover:bg-[rgba(26,24,20,0.015)]"}`}
-                  >
-                    {/* Thumb */}
-                    <div className="relative flex-shrink-0">
-                      <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center overflow-hidden">
-                        {v.imageUrl ? (
-                          <img
-                            src={v.imageUrl}
-                            alt={`${v.brand} ${v.model}`}
-                            className="w-full h-full object-contain p-1"
-                          />
-                        ) : (
-                          <span className="text-white/20 text-[13px] font-bold font-mono">
-                            {v.reference?.slice(0, 3) || v.brand.charAt(0)}
-                          </span>
-                        )}
-                      </div>
-                      {isSignedIn && (
-                        <CatalogImageUpload
-                          referenceId={v.id}
-                          currentImageUrl={v.imageUrl}
-                          brand={v.brand}
-                          model={v.model}
-                        />
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-semibold text-[#1a1814] truncate">
-                          {v.reference || v.model}
-                        </p>
-                        {isFeatured && (
-                          <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#8a7a5a] bg-[rgba(138,122,90,0.1)] rounded-full flex-shrink-0">
-                            Most popular
-                          </span>
-                        )}
-                        {v.isCommunitySubmitted && (
-                          <span className="text-[11px] text-[rgba(26,24,20,0.35)] flex-shrink-0">
-                            Community
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-[rgba(26,24,20,0.4)] truncate">
-                        {[
-                          v.material,
-                          v.sizeMm ? `${v.sizeMm}mm` : null,
-                          v.movement,
-                          v.color,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    </div>
-
-                    {/* Edit + Collector count */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {isSignedIn && (
-                        <ReferenceEditButton
-                          referenceId={v.id}
-                          current={{
-                            reference: v.reference,
-                            sizeMm: v.sizeMm,
-                            movement: v.movement,
-                            material: v.material,
-                            color: v.color,
-                            category: v.category,
-                            braceletType: v.braceletType,
-                            shape: v.shape,
-                            waterResistanceM: v.waterResistanceM,
-                            crystal: v.crystal,
-                            caseBack: v.caseBack,
-                            origin: v.origin,
-                            description: v.description,
-                            imageUrl: v.imageUrl,
-                          }}
-                        />
-                      )}
-                      <div className="text-right">
-                        <p className="text-[15px] font-bold text-[#1a1814]">{count}</p>
-                        <p className="text-[10px] text-[rgba(26,24,20,0.35)]">
-                          {count === 1 ? "collector" : "collectors"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {variations.map((v, i) => (
+                <VariationRow
+                  key={v.id}
+                  id={v.id}
+                  brand={v.brand}
+                  model={v.model}
+                  reference={v.reference}
+                  sizeMm={v.sizeMm}
+                  movement={v.movement}
+                  material={v.material}
+                  color={v.color}
+                  category={v.category}
+                  braceletType={v.braceletType}
+                  shape={v.shape}
+                  waterResistanceM={v.waterResistanceM}
+                  crystal={v.crystal}
+                  caseBack={v.caseBack}
+                  origin={v.origin}
+                  complications={v.complications as string[] | null}
+                  imageUrl={v.imageUrl}
+                  isCommunitySubmitted={v.isCommunitySubmitted}
+                  isFeatured={!!(featured && v.id === featured.id)}
+                  collectorCount={collectorCounts.get(v.id) || 0}
+                  isSignedIn={isSignedIn}
+                  isFirst={i === 0}
+                />
+              ))}
             </div>
 
             {/* Add Variation button */}
