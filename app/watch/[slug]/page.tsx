@@ -517,6 +517,7 @@ async function renderFamilyPage(family: {
                 <VariationRow
                   key={v.id}
                   id={v.id}
+                  slug={v.slug}
                   brand={v.brand}
                   model={v.model}
                   reference={v.reference}
@@ -784,6 +785,18 @@ async function renderLegacyPage(watch: {
     getRelatedWatchesLegacy(watch.id, watch.brand),
   ]);
 
+  // Look up parent family
+  let parentFamily: { slug: string; brand: string; model: string } | null = null;
+  if (watch.familyId) {
+    const db = getDb();
+    const [fam] = await db.select({ slug: schema.watchFamilies.slug, brand: schema.watchFamilies.brand, model: schema.watchFamilies.model })
+      .from(schema.watchFamilies).where(eq(schema.watchFamilies.id, watch.familyId)).limit(1);
+    if (fam) parentFamily = fam;
+  }
+
+  const { userId: viewerClerkId } = await auth();
+  const isSignedIn = !!viewerClerkId;
+
   const specs = [
     { label: "Movement", value: watch.movement },
     { label: "Size", value: watch.sizeMm ? `${watch.sizeMm}mm` : null },
@@ -822,6 +835,19 @@ async function renderLegacyPage(watch: {
 
           {/* Text */}
           <div className="flex-1">
+            {/* Parent family link */}
+            {parentFamily && (
+              <Link
+                href={`/watch/${parentFamily.slug}`}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#8a7a5a] hover:text-[#6b5b3a] transition-colors mb-3"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+                All {parentFamily.brand} {parentFamily.model} variations
+              </Link>
+            )}
+
             <p className="text-[11px] uppercase tracking-[3px] font-medium text-[rgba(26,24,20,0.4)] mb-2">
               {watch.brand}
             </p>
@@ -829,9 +855,34 @@ async function renderLegacyPage(watch: {
               {watch.model}
             </h1>
             {watch.reference && (
-              <p className="text-[14px] font-mono text-[rgba(26,24,20,0.35)] mb-6">
+              <p className="text-[14px] font-mono text-[rgba(26,24,20,0.35)] mb-3">
                 {watch.reference}
               </p>
+            )}
+
+            {/* Edit button for signed-in users */}
+            {isSignedIn && (
+              <div className="mb-6">
+                <ReferenceEditButton
+                  referenceId={watch.id}
+                  current={{
+                    reference: watch.reference,
+                    sizeMm: watch.sizeMm,
+                    movement: watch.movement,
+                    material: watch.material,
+                    color: watch.color,
+                    category: watch.category,
+                    braceletType: watch.braceletType,
+                    shape: watch.shape,
+                    waterResistanceM: watch.waterResistanceM,
+                    crystal: watch.crystal,
+                    caseBack: watch.caseBack,
+                    origin: watch.origin,
+                    description: watch.description,
+                    imageUrl: watch.imageUrl,
+                  }}
+                />
+              </div>
             )}
 
             {/* Specs grid */}

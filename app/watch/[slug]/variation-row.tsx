@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CatalogImageUpload } from "@/components/catalog-image-upload";
 import { ReferenceEditButton } from "./community-features";
 
 interface VariationRowProps {
   id: number;
+  slug: string;
   brand: string;
   model: string;
   reference: string;
@@ -30,7 +32,7 @@ interface VariationRowProps {
 }
 
 export function VariationRow({
-  id, brand, model, reference, sizeMm, movement, material, color, category,
+  id, slug, brand, model, reference, sizeMm, movement, material, color, category,
   braceletType, shape, waterResistanceM, crystal, caseBack, origin,
   complications, imageUrl, isCommunitySubmitted, isFeatured, collectorCount,
   isSignedIn, isFirst,
@@ -94,8 +96,17 @@ export function VariationRow({
               <span className="text-[11px] text-[rgba(26,24,20,0.35)] flex-shrink-0">👥</span>
             )}
           </div>
-          <p className="text-[11px] text-[rgba(26,24,20,0.4)] truncate">
-            {[color, sizeMm ? `${sizeMm}mm` : null, movement].filter(Boolean).join(" · ")}
+          {/* Clear description of what makes this variation unique */}
+          <p className="text-[12px] text-[rgba(26,24,20,0.5)] truncate">
+            {[
+              color ? `${color.charAt(0).toUpperCase() + color.slice(1)} dial` : null,
+              material,
+              sizeMm ? `${sizeMm}mm` : null,
+              braceletType,
+            ].filter(Boolean).join(" · ")}
+          </p>
+          <p className="text-[10px] text-[rgba(26,24,20,0.3)] truncate mt-0.5">
+            {[movement, origin, crystal].filter(Boolean).join(" · ")}
           </p>
         </div>
 
@@ -143,8 +154,15 @@ export function VariationRow({
           )}
 
           {/* Actions */}
-          {isSignedIn && (
-            <div className="flex items-center gap-2 pt-3 border-t border-[rgba(26,24,20,0.05)]">
+          <div className="flex items-center justify-between pt-3 border-t border-[rgba(26,24,20,0.05)]">
+            <Link
+              href={`/watch/${slug}`}
+              className="text-[12px] font-medium text-[#8a7a5a] hover:text-[#6b5b3a] transition-colors"
+            >
+              View full page &rarr;
+            </Link>
+            {isSignedIn && (
+            <div className="flex items-center gap-2">
               <ReferenceEditButton
                 referenceId={id}
                 current={{
@@ -166,7 +184,8 @@ export function VariationRow({
               />
               <span className="text-[11px] text-[rgba(26,24,20,0.2)]">Edit specs</span>
             </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
