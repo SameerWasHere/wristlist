@@ -53,6 +53,11 @@ export function VariationRow({
     shape && { label: "Shape", value: shape },
   ].filter(Boolean) as { label: string; value: string }[];
 
+  // Count how many of the 8 analytics dimensions are filled
+  const dimensionFields = [movement, category, braceletType, shape, color, crystal, origin, caseBack];
+  const specsFilled = dimensionFields.filter((v) => v != null && v !== "").length;
+  const specsTotal = dimensionFields.length;
+
   return (
     <div
       id={`ref-${id}`}
@@ -150,6 +155,25 @@ export function VariationRow({
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Spec completeness nudge */}
+          {isSignedIn && specsFilled < specsTotal && (
+            <div className="mb-4 flex items-center gap-2 px-3 py-2 bg-[rgba(138,122,90,0.04)] rounded-[10px]">
+              <div className="flex gap-0.5">
+                {dimensionFields.map((v, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full ${
+                      v != null && v !== "" ? "bg-[#8a7a5a]" : "bg-[rgba(26,24,20,0.08)]"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-[11px] text-[rgba(26,24,20,0.4)]">
+                {specsFilled}/{specsTotal} specs filled — help the community by adding more
+              </p>
             </div>
           )}
 

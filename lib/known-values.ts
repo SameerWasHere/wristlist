@@ -5,7 +5,7 @@
  */
 
 export const KNOWN = {
-  movement: ["automatic", "quartz", "battery", "solar", "manual wind"],
+  movement: ["automatic", "quartz", "battery", "solar", "manual wind", "spring drive"],
   category: [
     "diver",
     "pilot",
@@ -22,12 +22,13 @@ export const KNOWN = {
     "rubber strap",
     "nato strap",
     "mesh bracelet",
+    "textile strap",
   ],
   shape: ["round", "rectangular", "square", "tonneau", "cushion"],
-  color: ["black", "white", "blue", "green", "gold", "silver", "brown"],
+  color: ["black", "white", "blue", "green", "gold", "silver", "brown", "gray"],
   crystal: ["sapphire", "mineral", "hesalite", "acrylic"],
   origin: ["Swiss", "Japanese", "German", "American", "Chinese"],
-  case_back: ["solid", "display", "exhibition"],
+  case_back: ["solid", "display", "exhibition", "skeleton"],
 } as const;
 
 /** Union helper — pulls the literal values out of a KNOWN key */

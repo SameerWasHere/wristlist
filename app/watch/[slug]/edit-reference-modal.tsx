@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { ChipPicker } from "@/components/chip-picker";
+import { KNOWN } from "@/lib/known-values";
 
 interface EditReferenceModalProps {
   open: boolean;
@@ -113,23 +115,19 @@ export function EditReferenceModal({
     }
   }
 
-  const fields = [
+  const textFields = [
     { label: "Brand", value: brand, set: setBrand },
     { label: "Model", value: model, set: setModel },
     { label: "Reference", value: reference, set: setReference },
-    { label: "Size (mm)", value: sizeMm, set: setSizeMm },
-    { label: "Movement", value: movement, set: setMovement },
+    { label: "Size (mm)", value: sizeMm, set: setSizeMm, type: "number" },
     { label: "Material", value: material, set: setMaterial },
-    { label: "Color", value: color, set: setColor },
-    { label: "Category", value: category, set: setCategory },
-    { label: "Bracelet Type", value: braceletType, set: setBraceletType },
-    { label: "Shape", value: shape, set: setShape },
-    { label: "Water Resistance (m)", value: waterResistanceM, set: setWaterResistanceM },
-    { label: "Crystal", value: crystal, set: setCrystal },
-    { label: "Case Back", value: caseBack, set: setCaseBack },
-    { label: "Origin", value: origin, set: setOrigin },
+    { label: "Water Resistance (m)", value: waterResistanceM, set: setWaterResistanceM, type: "number" },
     { label: "Image URL", value: imageUrl, set: setImageUrl },
   ];
+
+  function capitalize(s: string) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
 
   return (
     <div
@@ -158,20 +156,33 @@ export function EditReferenceModal({
             <p className="text-[13px] text-red-600 mb-4">{error}</p>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            {fields.map((f) => (
+          {/* Text fields */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            {textFields.map((f) => (
               <div key={f.label}>
                 <label className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.4)] font-medium block mb-1">
                   {f.label}
                 </label>
                 <input
-                  type="text"
+                  type={f.type || "text"}
                   value={f.value}
                   onChange={(e) => f.set(e.target.value)}
                   className="w-full text-[16px] px-3 py-2.5 rounded-[10px] border border-[rgba(26,24,20,0.1)] bg-white focus:outline-none focus:border-[#8a7a5a]"
                 />
               </div>
             ))}
+          </div>
+
+          {/* Dimension chip pickers */}
+          <div className="space-y-4 mb-5">
+            <ChipPicker label="Category" options={KNOWN.category} value={category || null} onChange={(v) => setCategory(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Movement" options={KNOWN.movement} value={movement || null} onChange={(v) => setMovement(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Dial Color" options={KNOWN.color} value={color || null} onChange={(v) => setColor(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Case Shape" options={KNOWN.shape} value={shape || null} onChange={(v) => setShape(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Crystal" options={KNOWN.crystal} value={crystal || null} onChange={(v) => setCrystal(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Bracelet" options={KNOWN.bracelet_type} value={braceletType || null} onChange={(v) => setBraceletType(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Case Back" options={KNOWN.case_back} value={caseBack || null} onChange={(v) => setCaseBack(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Origin" options={KNOWN.origin} value={origin || null} onChange={(v) => setOrigin(v || "")} />
           </div>
 
           <div className="mt-3">

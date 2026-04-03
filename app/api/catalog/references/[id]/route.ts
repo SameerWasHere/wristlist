@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
 import { eq, sql, and } from "drizzle-orm";
+import { normalizeDimensionValue, DIMENSION_FIELDS } from "@/lib/normalize-dimension";
 
 // ---------------------------------------------------------------------------
 // GET /api/catalog/references/[id]
@@ -124,6 +125,8 @@ export async function PATCH(
       updates[field] = newVal ? parseFloat(newVal) : null;
     } else if (field === "waterResistanceM") {
       updates[field] = newVal ? parseInt(newVal, 10) : null;
+    } else if (DIMENSION_FIELDS.includes(field)) {
+      updates[field] = normalizeDimensionValue(field, newVal) ?? null;
     } else {
       updates[field] = newVal ?? null;
     }

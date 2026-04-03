@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { PhotoUpload } from "@/components/photo-upload";
+import { ChipPicker } from "@/components/chip-picker";
 import { KNOWN } from "@/lib/known-values";
 
 interface FuzzyMatch {
@@ -77,6 +78,12 @@ export function AddToCatalogModal({
   const [material, setMaterial] = useState("");
   const [movement, setMovement] = useState("");
   const [braceletType, setBraceletType] = useState("");
+  const [category, setCategory] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [shape, setShape] = useState("");
+  const [crystal, setCrystal] = useState("");
+  const [caseBack, setCaseBack] = useState("");
+  const [waterResistanceM, setWaterResistanceM] = useState("");
   const [imageUrl, setImageUrl] = useState<string[]>([]);
   const [description, setDescription] = useState("");
 
@@ -111,6 +118,12 @@ export function AddToCatalogModal({
       setMaterial("");
       setMovement("");
       setBraceletType("");
+      setCategory("");
+      setOrigin("");
+      setShape("");
+      setCrystal("");
+      setCaseBack("");
+      setWaterResistanceM("");
       setImageUrl([]);
       setDescription("");
       setFamilyMatches([]);
@@ -286,6 +299,12 @@ export function AddToCatalogModal({
         material: material || undefined,
         braceletType: braceletType || undefined,
         color: color || undefined,
+        category: category || undefined,
+        origin: origin || undefined,
+        shape: shape || undefined,
+        crystal: crystal || undefined,
+        caseBack: caseBack || undefined,
+        waterResistanceM: waterResistanceM || undefined,
         imageUrl: imageUrl[0] || undefined,
         description: description.trim() || undefined,
       };
@@ -786,7 +805,7 @@ export function AddToCatalogModal({
                   />
                 </div>
 
-                {/* Size + Dial Color */}
+                {/* Identity: Size + Water Resistance */}
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   <div>
                     <label className={labelClass}>Size (mm)</label>
@@ -799,71 +818,100 @@ export function AddToCatalogModal({
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Dial Color</label>
-                    <select
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className={selectClass}
-                    >
-                      <option value="">Select...</option>
-                      {KNOWN.color.map((c) => (
-                        <option key={c} value={c}>
-                          {capitalize(c)}
-                        </option>
-                      ))}
-                    </select>
+                    <label className={labelClass}>Water Resistance (m)</label>
+                    <input
+                      type="number"
+                      value={waterResistanceM}
+                      onChange={(e) => setWaterResistanceM(e.target.value)}
+                      placeholder="e.g. 300"
+                      className={inputClass}
+                    />
                   </div>
                 </div>
 
-                {/* Material + Movement */}
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div>
-                    <label className={labelClass}>Case Material</label>
-                    <select
-                      value={material}
-                      onChange={(e) => setMaterial(e.target.value)}
-                      className={selectClass}
-                    >
-                      <option value="">Select...</option>
-                      {MATERIALS.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Movement</label>
-                    <select
-                      value={movement}
-                      onChange={(e) => setMovement(e.target.value)}
-                      className={selectClass}
-                    >
-                      <option value="">Select...</option>
-                      {KNOWN.movement.map((m) => (
-                        <option key={m} value={m}>
-                          {capitalize(m)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Bracelet */}
+                {/* Character */}
                 <div className="mb-5">
-                  <label className={labelClass}>Bracelet</label>
-                  <select
-                    value={braceletType}
-                    onChange={(e) => setBraceletType(e.target.value)}
-                    className={selectClass}
-                  >
-                    <option value="">Select...</option>
-                    {KNOWN.bracelet_type.map((b) => (
-                      <option key={b} value={b}>
-                        {capitalize(b)}
-                      </option>
-                    ))}
-                  </select>
+                  <ChipPicker
+                    label="Category"
+                    options={KNOWN.category}
+                    value={category || null}
+                    onChange={(v) => setCategory(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Movement"
+                    options={KNOWN.movement}
+                    value={movement || null}
+                    onChange={(v) => setMovement(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+
+                {/* Appearance */}
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Dial Color"
+                    options={KNOWN.color}
+                    value={color || null}
+                    onChange={(v) => setColor(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Case Shape"
+                    options={KNOWN.shape}
+                    value={shape || null}
+                    onChange={(v) => setShape(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Crystal"
+                    options={KNOWN.crystal}
+                    value={crystal || null}
+                    onChange={(v) => setCrystal(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+
+                {/* Construction */}
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Case Material"
+                    options={MATERIALS}
+                    value={material || null}
+                    onChange={(v) => setMaterial(v || "")}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Bracelet"
+                    options={KNOWN.bracelet_type}
+                    value={braceletType || null}
+                    onChange={(v) => setBraceletType(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Case Back"
+                    options={KNOWN.case_back}
+                    value={caseBack || null}
+                    onChange={(v) => setCaseBack(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
+                    label="Origin"
+                    options={KNOWN.origin}
+                    value={origin || null}
+                    onChange={(v) => setOrigin(v || "")}
+                  />
                 </div>
 
                 {/* Photo */}
@@ -1004,6 +1052,66 @@ export function AddToCatalogModal({
                         </span>
                         <span className="text-[#1a1814] font-medium">
                           {capitalize(braceletType)}
+                        </span>
+                      </div>
+                    )}
+                    {category && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Category:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {capitalize(category)}
+                        </span>
+                      </div>
+                    )}
+                    {origin && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Origin:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {origin}
+                        </span>
+                      </div>
+                    )}
+                    {shape && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Shape:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {capitalize(shape)}
+                        </span>
+                      </div>
+                    )}
+                    {crystal && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Crystal:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {capitalize(crystal)}
+                        </span>
+                      </div>
+                    )}
+                    {caseBack && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Case Back:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {capitalize(caseBack)}
+                        </span>
+                      </div>
+                    )}
+                    {waterResistanceM && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Water Res.:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {waterResistanceM}m
                         </span>
                       </div>
                     )}

@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
 import { eq, and, ilike, or, sql } from "drizzle-orm";
+import { normalizeDimensionValue } from "@/lib/normalize-dimension";
 
 function slugify(...parts: (string | undefined)[]): string {
   return parts
@@ -300,17 +301,17 @@ export async function POST(request: NextRequest) {
     brand: trimmedBrand,
     model: trimmedModel,
     reference: trimmedRef,
-    category: category || null,
-    movement: movement || null,
+    category: normalizeDimensionValue("category", category) || null,
+    movement: normalizeDimensionValue("movement", movement) || null,
     sizeMm: sizeMm ? parseFloat(sizeMm) : null,
-    origin: origin || null,
-    crystal: crystal || null,
+    origin: normalizeDimensionValue("origin", origin) || null,
+    crystal: normalizeDimensionValue("crystal", crystal) || null,
     material: material || null,
-    color: color || null,
-    braceletType: braceletType || null,
+    color: normalizeDimensionValue("color", color) || null,
+    braceletType: normalizeDimensionValue("braceletType", braceletType) || null,
     waterResistanceM: waterResistanceM ? parseInt(waterResistanceM) : null,
-    caseBack: caseBack || null,
-    shape: shape || null,
+    caseBack: normalizeDimensionValue("caseBack", caseBack) || null,
+    shape: normalizeDimensionValue("shape", shape) || null,
     imageUrl: imageUrl || null,
     description: description || null,
     isCommunitySubmitted: true,
