@@ -313,6 +313,7 @@ async function getProfileData(username: string) {
       photos: (row?.photos as string[] | null) || undefined,
       gapsFilled: item.gapsFilled,
       slug: row?.watch.slug || undefined,
+      imageUrl: row?.watch.imageUrl || undefined,
     };
   });
 
@@ -559,13 +560,17 @@ export default async function ProfilePage({
                   </span>
 
                   <div
-                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center font-black text-[18px] text-white/5"
+                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center overflow-hidden"
                     style={{
                       background:
                         "linear-gradient(145deg,#20202a,#10101a)",
                     }}
                   >
-                    {w.brand.charAt(0)}
+                    {w.imageUrl ? (
+                      <img src={w.imageUrl} alt={`${w.brand} ${w.model}`} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <span className="font-black text-[18px] text-white/5">{w.brand.charAt(0)}</span>
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
