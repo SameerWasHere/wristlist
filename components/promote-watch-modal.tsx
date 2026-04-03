@@ -35,7 +35,7 @@ export function PromoteWatchModal({
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Step 2 form fields
-  const [caption, setCaption] = useState("");
+  const [caption, setCaption] = useState(wishlistNote || "");
   const [acquiredMonth, setAcquiredMonth] = useState("");
   const [acquiredDay, setAcquiredDay] = useState("");
   const [acquiredYear, setAcquiredYear] = useState("");
@@ -226,9 +226,15 @@ export function PromoteWatchModal({
                 <p className="font-serif italic text-[28px] sm:text-[32px] font-medium text-[#1a1814] tracking-[-0.5px] mb-3">
                   Congratulations!
                 </p>
-                <p className="text-[15px] text-[rgba(26,24,20,0.5)] mb-8">
+                <p className="text-[15px] text-[rgba(26,24,20,0.5)] mb-4">
                   {brand} {model} is now yours.
                 </p>
+                {wishlistNote && (
+                  <p className="text-[13px] font-serif italic text-[rgba(26,24,20,0.4)] mb-8 max-w-[300px] mx-auto">
+                    &ldquo;{wishlistNote}&rdquo;
+                  </p>
+                )}
+                {!wishlistNote && <div className="mb-4" />}
                 <button
                   onClick={() => setStep(2)}
                   className="px-10 py-3.5 text-[15px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:bg-[#2a2824] active:scale-[0.98] transition-all duration-200"

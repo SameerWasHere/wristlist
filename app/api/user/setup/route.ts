@@ -3,6 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
+export async function GET(request: NextRequest) {
+  const username = request.nextUrl.searchParams.get("username")?.trim().toLowerCase();
+  if (!username || username.length < 3) {
+    return NextResponse.json({ available: false });
+  }
+  const db = getDb();
+  const [existing] = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.username, username))
+    .limit(1);
+  return NextResponse.json({ available: !existing });
+}
+
 export async function POST(request: NextRequest) {
   const { userId: clerkId } = await auth();
   if (!clerkId) {

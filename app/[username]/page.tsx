@@ -487,13 +487,13 @@ export default async function ProfilePage({
         {/* -- Empty State ---------------------------------------------- */}
         {!hasWatches && (
           <section className="mb-14">
-            <div className="border border-[rgba(26,24,20,0.08)] border-dashed rounded-[20px] py-12 px-8 text-center">
-              <p className="text-[20px] font-light tracking-tight mb-2">
+            <div className="border border-[rgba(26,24,20,0.08)] border-dashed rounded-[20px] py-16 px-8 text-center">
+              <p className="text-[28px] sm:text-[32px] font-light tracking-tight mb-3">
                 <span className="font-serif italic font-medium text-[#8a7a5a]">
                   {isOwner ? "Start your collection" : "No watches yet"}
                 </span>
               </p>
-              <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-4 max-w-md mx-auto">
+              <p className="text-[15px] text-[rgba(26,24,20,0.4)] mb-6 max-w-md mx-auto leading-relaxed">
                 {isOwner
                   ? "Add your first watch to start building your collection."
                   : `${displayName} hasn\u0027t added any watches yet. Check back soon!`}
@@ -669,7 +669,7 @@ export default async function ProfilePage({
         )}
 
         {/* -- Collection Insights (owner only) ------------------------ */}
-        {isOwner && hasWatches && (
+        {hasWatches && (
           <CollectionInsights
             archetype={dna.archetype}
             description={dna.description}

@@ -1,6 +1,7 @@
 import { Nav } from "@/components/nav";
 import { getDb, schema } from "@/lib/db";
 import { sql, eq, desc } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { CatalogGrid } from "./catalog-grid";
 import type { CatalogFamily } from "./catalog-grid";
 import Link from "next/link";
@@ -158,6 +159,23 @@ export default async function CatalogPage() {
     getCatalogStats(),
   ]);
 
+  // Resolve profile URL for CTA
+  const { userId: clerkId } = await auth();
+  let profileUrl = "/sign-in";
+  if (clerkId) {
+    try {
+      const db = getDb();
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.clerkId, clerkId))
+        .limit(1);
+      if (user) profileUrl = `/${user.username}`;
+    } catch {
+      // fallback to sign-in
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
       <Nav />
@@ -224,7 +242,7 @@ export default async function CatalogPage() {
         {/* CTA at bottom */}
         <div className="mt-12 text-center">
           <Link
-            href="/profile"
+            href={profileUrl}
             className="inline-block px-6 py-3 text-[13px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity"
           >
             Don&apos;t see your watch? Add it

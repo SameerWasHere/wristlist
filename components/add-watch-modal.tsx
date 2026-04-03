@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useUser, useClerk, SignInButton } from "@clerk/nextjs";
 import { PhotoUpload } from "@/components/photo-upload";
 
 export interface WatchData {
@@ -246,6 +246,46 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   }, [status, watch, modelYear, acquiredYear, milestone, caption, photos, mods, onClose, isSignedIn, clerk, manualMode, manualBrand, manualModel, manualReference, manualCategory, manualMovement, manualSizeMm, manualOrigin, resetForm]);
 
   if (!animating && !open) return null;
+
+  if (!isSignedIn) {
+    return (
+      <>
+        <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: animating || open ? "auto" : "none" }}>
+          <div
+            className="absolute inset-0 transition-opacity duration-300"
+            style={{
+              backgroundColor: "rgba(0,0,0,0.3)",
+              opacity: visible ? 1 : 0,
+            }}
+            onClick={onClose}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[24px] max-h-[85vh] overflow-y-auto transition-transform duration-300 ease-out"
+            style={{
+              transform: visible ? "translateY(0)" : "translateY(100%)",
+            }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-[rgba(26,24,20,0.12)]" />
+            </div>
+            <div className="px-4 sm:px-6 pb-8 pt-2 text-center">
+              <h2 className="text-[24px] font-bold text-[#1a1814] leading-tight mb-2 mt-6">
+                Sign in to add watches
+              </h2>
+              <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-8">
+                Create an account to start building your collection
+              </p>
+              <SignInButton mode="modal">
+                <button className="w-full py-3.5 text-[15px] font-semibold bg-[#8a7a5a] text-white rounded-full hover:bg-[#7a6a4a] active:scale-[0.98] transition-all duration-200">
+                  Sign In
+                </button>
+              </SignInButton>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // When in manual mode and no watch prop, show manual form
   const showManualForm = manualMode && !watch;

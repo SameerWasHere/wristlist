@@ -44,6 +44,7 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
   const [familyResults, setFamilyResults] = useState<FamilyResult[]>([]);
   const [popularFamilies, setPopularFamilies] = useState<FamilyResult[]>([]);
   const [popularWatches, setPopularWatches] = useState<SearchResult[]>([]);
+  const [popularLoading, setPopularLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [modalWatch, setModalWatch] = useState<WatchData | null>(null);
@@ -99,6 +100,8 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
         }
       } catch {
         // silently fail
+      } finally {
+        setPopularLoading(false);
       }
     }
     loadPopular();
@@ -376,6 +379,20 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
           Browse Popular Watches
         </p>
         <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
+          {/* Loading skeleton */}
+          {popularLoading && (
+            <div className="space-y-1">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+                  <div className="w-11 h-11 rounded-[12px] bg-[rgba(26,24,20,0.06)]" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-[rgba(26,24,20,0.06)] rounded w-2/3" />
+                    <div className="h-2 bg-[rgba(26,24,20,0.04)] rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Family-based popular */}
           {popularFamilies.map((family, i) => (
             <div key={`pop-family-${family.id}`}>
