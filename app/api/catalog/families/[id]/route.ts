@@ -80,28 +80,7 @@ export async function PATCH(
     return NextResponse.json({ error: "User not found" }, { status: 403 });
   }
 
-  // Rate limit: max 10 edits per day
-  try {
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.catalogEdits)
-      .where(
-        and(
-          eq(schema.catalogEdits.userId, user.id),
-          sql`${schema.catalogEdits.createdAt} > ${oneDayAgo}`,
-        ),
-      );
-
-    if (countResult && countResult.count >= 10) {
-      return NextResponse.json(
-        { error: "Rate limit: max 10 edits per day." },
-        { status: 429 },
-      );
-    }
-  } catch {
-    // Allow if check fails
-  }
+  // Rate limiting removed for now
 
   // Get current family
   const [family] = await db
