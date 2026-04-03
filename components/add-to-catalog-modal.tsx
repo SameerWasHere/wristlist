@@ -1050,6 +1050,12 @@ export function AddToCatalogModal({
 
                 {dupCheck === "not_found" && (
                   <>
+                    <div className="px-3 py-2.5 bg-[rgba(138,122,90,0.06)] border border-[rgba(138,122,90,0.12)] rounded-[10px] mb-3">
+                      <p className="text-[11px] text-[rgba(26,24,20,0.5)] leading-relaxed">
+                        <strong className="text-[#8a7a5a] font-semibold">Community contribution.</strong>{" "}
+                        This watch will be added to the public catalog for all users. Please ensure the information is accurate — editing privileges may be revoked for inaccurate or abusive submissions.
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={handleCreate}
