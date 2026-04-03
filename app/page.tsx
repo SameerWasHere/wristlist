@@ -101,6 +101,7 @@ async function getFeaturedCollectors() {
           movement: r.watch.movement || "",
           category: r.watch.category || "",
           material: r.watch.material || "",
+          bezel_type: r.watch.bezelType || "",
           bracelet_type: r.watch.braceletType || "",
           shape: r.watch.shape || "",
           color: r.watch.color || "",

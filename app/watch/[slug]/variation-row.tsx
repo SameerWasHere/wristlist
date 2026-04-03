@@ -17,6 +17,7 @@ interface VariationRowProps {
   color: string | null;
   category: string | null;
   braceletType: string | null;
+  bezelType: string | null;
   shape: string | null;
   waterResistanceM: number | null;
   crystal: string | null;
@@ -33,7 +34,7 @@ interface VariationRowProps {
 
 export function VariationRow({
   id, slug, brand, model, reference, sizeMm, movement, material, color, category,
-  braceletType, shape, waterResistanceM, crystal, caseBack, origin,
+  braceletType, bezelType, shape, waterResistanceM, crystal, caseBack, origin,
   complications, imageUrl, isCommunitySubmitted, isFeatured, collectorCount,
   isSignedIn, isFirst,
 }: VariationRowProps) {
@@ -46,6 +47,7 @@ export function VariationRow({
     material && { label: "Material", value: material },
     color && { label: "Dial", value: color },
     braceletType && { label: "Bracelet", value: braceletType },
+    bezelType && { label: "Bezel", value: bezelType },
     origin && { label: "Origin", value: origin },
     crystal && { label: "Crystal", value: crystal },
     waterResistanceM && { label: "Water Res.", value: `${waterResistanceM}m` },
@@ -53,8 +55,8 @@ export function VariationRow({
     shape && { label: "Shape", value: shape },
   ].filter(Boolean) as { label: string; value: string }[];
 
-  // Count how many of the 9 analytics dimensions are filled
-  const dimensionFields = [movement, category, material, braceletType, shape, color, crystal, origin, caseBack];
+  // Count how many of the 10 analytics dimensions are filled
+  const dimensionFields = [movement, category, material, bezelType, braceletType, shape, color, crystal, origin, caseBack];
   const specsFilled = dimensionFields.filter((v) => v != null && v !== "").length;
   const specsTotal = dimensionFields.length;
 
@@ -197,6 +199,7 @@ export function VariationRow({
                   color,
                   category,
                   braceletType,
+                  bezelType,
                   shape,
                   waterResistanceM,
                   crystal,

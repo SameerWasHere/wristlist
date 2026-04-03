@@ -87,6 +87,7 @@ export async function PATCH(
     "material",
     "color",
     "category",
+    "bezelType",
     "braceletType",
     "shape",
     "waterResistanceM",

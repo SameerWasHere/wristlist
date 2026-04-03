@@ -19,6 +19,7 @@ interface EditReferenceModalProps {
     color: string | null;
     category: string | null;
     braceletType: string | null;
+    bezelType: string | null;
     shape: string | null;
     waterResistanceM: number | null;
     crystal: string | null;
@@ -49,6 +50,7 @@ export function EditReferenceModal({
   const [color, setColor] = useState(current.color || "");
   const [category, setCategory] = useState(current.category || "");
   const [braceletType, setBraceletType] = useState(current.braceletType || "");
+  const [bezelType, setBezelType] = useState(current.bezelType || "");
   const [shape, setShape] = useState(current.shape || "");
   const [waterResistanceM, setWaterResistanceM] = useState(current.waterResistanceM?.toString() || "");
   const [crystal, setCrystal] = useState(current.crystal || "");
@@ -89,6 +91,7 @@ export function EditReferenceModal({
           color: color.trim() || null,
           category: category.trim() || null,
           braceletType: braceletType.trim() || null,
+          bezelType: bezelType.trim() || null,
           shape: shape.trim() || null,
           waterResistanceM: waterResistanceM ? parseInt(waterResistanceM, 10) : null,
           crystal: crystal.trim() || null,
@@ -180,6 +183,7 @@ export function EditReferenceModal({
             <ChipPicker label="Dial Color" options={KNOWN.color} value={color || null} onChange={(v) => setColor(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Case Shape" options={KNOWN.shape} value={shape || null} onChange={(v) => setShape(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Crystal" options={KNOWN.crystal} value={crystal || null} onChange={(v) => setCrystal(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Bezel Type" options={KNOWN.bezel_type} value={bezelType || null} onChange={(v) => setBezelType(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Bracelet" options={KNOWN.bracelet_type} value={braceletType || null} onChange={(v) => setBraceletType(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Case Back" options={KNOWN.case_back} value={caseBack || null} onChange={(v) => setCaseBack(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Origin" options={KNOWN.origin} value={origin || null} onChange={(v) => setOrigin(v || "")} />

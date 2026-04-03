@@ -73,6 +73,7 @@ export function AddToCatalogModal({
   const [shape, setShape] = useState("");
   const [crystal, setCrystal] = useState("");
   const [caseBack, setCaseBack] = useState("");
+  const [bezelType, setBezelType] = useState("");
   const [waterResistanceM, setWaterResistanceM] = useState("");
   const [imageUrl, setImageUrl] = useState<string[]>([]);
   const [description, setDescription] = useState("");
@@ -113,6 +114,7 @@ export function AddToCatalogModal({
       setShape("");
       setCrystal("");
       setCaseBack("");
+      setBezelType("");
       setWaterResistanceM("");
       setImageUrl([]);
       setDescription("");
@@ -294,6 +296,7 @@ export function AddToCatalogModal({
         shape: shape || undefined,
         crystal: crystal || undefined,
         caseBack: caseBack || undefined,
+        bezelType: bezelType || undefined,
         waterResistanceM: waterResistanceM || undefined,
         imageUrl: imageUrl[0] || undefined,
         description: description.trim() || undefined,
@@ -898,6 +901,15 @@ export function AddToCatalogModal({
                 </div>
                 <div className="mb-5">
                   <ChipPicker
+                    label="Bezel Type"
+                    options={KNOWN.bezel_type}
+                    value={bezelType || null}
+                    onChange={(v) => setBezelType(v || "")}
+                    formatLabel={capitalize}
+                  />
+                </div>
+                <div className="mb-5">
+                  <ChipPicker
                     label="Origin"
                     options={KNOWN.origin}
                     value={origin || null}
@@ -1093,6 +1105,16 @@ export function AddToCatalogModal({
                         </span>
                         <span className="text-[#1a1814] font-medium">
                           {capitalize(caseBack)}
+                        </span>
+                      </div>
+                    )}
+                    {bezelType && (
+                      <div className="text-[12px]">
+                        <span className="text-[rgba(26,24,20,0.35)]">
+                          Bezel:{" "}
+                        </span>
+                        <span className="text-[#1a1814] font-medium">
+                          {capitalize(bezelType)}
                         </span>
                       </div>
                     )}

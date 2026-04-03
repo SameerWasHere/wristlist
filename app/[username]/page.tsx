@@ -51,6 +51,7 @@ function toAnalyticsWatch(w: {
   movement: string | null;
   category: string | null;
   material: string | null;
+  bezelType: string | null;
   braceletType: string | null;
   shape: string | null;
   color: string | null;
@@ -66,6 +67,7 @@ function toAnalyticsWatch(w: {
     movement: w.movement || "",
     category: w.category || "",
     material: w.material || "",
+    bezel_type: w.bezelType || "",
     bracelet_type: w.braceletType || "",
     shape: w.shape || "",
     color: w.color || "",

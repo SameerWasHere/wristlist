@@ -8,6 +8,7 @@ export interface AnalyticsWatch {
   movement: string;
   category: string;
   material: string;
+  bezel_type: string;
   bracelet_type: string;
   shape: string;
   color: string;

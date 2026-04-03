@@ -528,6 +528,7 @@ async function renderFamilyPage(family: {
                   color={v.color}
                   category={v.category}
                   braceletType={v.braceletType}
+                  bezelType={v.bezelType}
                   shape={v.shape}
                   waterResistanceM={v.waterResistanceM}
                   crystal={v.crystal}
@@ -892,6 +893,7 @@ async function renderLegacyPage(watch: {
                     color: watch.color,
                     category: watch.category,
                     braceletType: watch.braceletType,
+                    bezelType: watch.bezelType,
                     shape: watch.shape,
                     waterResistanceM: watch.waterResistanceM,
                     crystal: watch.crystal,

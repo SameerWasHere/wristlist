@@ -65,6 +65,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const [manualShape, setManualShape] = useState("");
   const [manualCrystal, setManualCrystal] = useState("");
   const [manualCaseBack, setManualCaseBack] = useState("");
+  const [manualBezelType, setManualBezelType] = useState("");
   const [creatingWatch, setCreatingWatch] = useState(false);
 
   // Brand autocomplete
@@ -181,6 +182,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     setManualShape("");
     setManualCrystal("");
     setManualCaseBack("");
+    setManualBezelType("");
   }, []);
 
   const [saving, setSaving] = useState(false);
@@ -226,6 +228,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
             shape: manualShape || undefined,
             crystal: manualCrystal || undefined,
             caseBack: manualCaseBack || undefined,
+            bezelType: manualBezelType || undefined,
           }),
         });
 
@@ -526,6 +529,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                   <ChipPicker label="Origin" options={KNOWN.origin} value={manualOrigin || null} onChange={(v) => setManualOrigin(v || "")} />
                   <ChipPicker label="Case Shape" options={KNOWN.shape} value={manualShape || null} onChange={(v) => setManualShape(v || "")} formatLabel={capitalize} />
                   <ChipPicker label="Crystal" options={KNOWN.crystal} value={manualCrystal || null} onChange={(v) => setManualCrystal(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Bezel Type" options={KNOWN.bezel_type} value={manualBezelType || null} onChange={(v) => setManualBezelType(v || "")} formatLabel={capitalize} />
                   <ChipPicker label="Case Back" options={KNOWN.case_back} value={manualCaseBack || null} onChange={(v) => setManualCaseBack(v || "")} formatLabel={capitalize} />
                 </div>
 

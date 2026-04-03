@@ -52,6 +52,7 @@ export const watchReferences = pgTable(
     color: text("color"),
     category: text("category"),
     braceletType: text("bracelet_type"),
+    bezelType: text("bezel_type"),
     shape: text("shape"),
     waterResistanceM: integer("water_resistance_m"),
     crystal: text("crystal"),

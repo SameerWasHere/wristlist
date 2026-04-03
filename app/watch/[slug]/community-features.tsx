@@ -67,6 +67,7 @@ export function ReferenceEditButton({
     color: string | null;
     category: string | null;
     braceletType: string | null;
+    bezelType: string | null;
     shape: string | null;
     waterResistanceM: number | null;
     crystal: string | null;
