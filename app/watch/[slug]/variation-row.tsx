@@ -182,7 +182,7 @@ export function VariationRow({
                   imageUrl,
                 }}
               />
-              <span className="text-[11px] text-[rgba(26,24,20,0.2)]">Edit specs</span>
+              {/* label is inside the button component now */}
             </div>
             )}
           </div>

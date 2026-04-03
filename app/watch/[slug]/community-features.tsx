@@ -34,9 +34,9 @@ export function FamilyEditButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 text-[12px] font-medium text-[rgba(26,24,20,0.4)] hover:text-[#8a7a5a] transition-colors"
+        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[12px] font-semibold text-[#8a7a5a] border border-[rgba(138,122,90,0.25)] rounded-full hover:bg-[rgba(138,122,90,0.06)] hover:border-[rgba(138,122,90,0.4)] transition-all"
       >
-        <PencilIcon /> Edit
+        <PencilIcon /> Edit Page
       </button>
       <EditFamilyModal
         open={open}
@@ -80,10 +80,10 @@ export function ReferenceEditButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-[rgba(26,24,20,0.3)] hover:text-[#8a7a5a] transition-colors p-1"
-        title="Edit variation"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[#8a7a5a] border border-[rgba(138,122,90,0.2)] rounded-full hover:bg-[rgba(138,122,90,0.06)] hover:border-[rgba(138,122,90,0.4)] transition-all"
+        title="Edit variation specs"
       >
-        <PencilIcon />
+        <PencilIcon /> Edit Specs
       </button>
       <EditReferenceModal
         open={open}
