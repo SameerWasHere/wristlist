@@ -120,7 +120,6 @@ export function EditReferenceModal({
     { label: "Model", value: model, set: setModel },
     { label: "Reference", value: reference, set: setReference },
     { label: "Size (mm)", value: sizeMm, set: setSizeMm, type: "number" },
-    { label: "Material", value: material, set: setMaterial },
     { label: "Water Resistance (m)", value: waterResistanceM, set: setWaterResistanceM, type: "number" },
     { label: "Image URL", value: imageUrl, set: setImageUrl },
   ];
@@ -177,6 +176,7 @@ export function EditReferenceModal({
           <div className="space-y-4 mb-5">
             <ChipPicker label="Category" options={KNOWN.category} value={category || null} onChange={(v) => setCategory(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Movement" options={KNOWN.movement} value={movement || null} onChange={(v) => setMovement(v || "")} formatLabel={capitalize} />
+            <ChipPicker label="Case Material" options={KNOWN.material} value={material || null} onChange={(v) => setMaterial(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Dial Color" options={KNOWN.color} value={color || null} onChange={(v) => setColor(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Case Shape" options={KNOWN.shape} value={shape || null} onChange={(v) => setShape(v || "")} formatLabel={capitalize} />
             <ChipPicker label="Crystal" options={KNOWN.crystal} value={crystal || null} onChange={(v) => setCrystal(v || "")} formatLabel={capitalize} />

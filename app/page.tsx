@@ -100,6 +100,7 @@ async function getFeaturedCollectors() {
         const analyticsWatches: AnalyticsWatch[] = watches.map((r) => ({
           movement: r.watch.movement || "",
           category: r.watch.category || "",
+          material: r.watch.material || "",
           bracelet_type: r.watch.braceletType || "",
           shape: r.watch.shape || "",
           color: r.watch.color || "",

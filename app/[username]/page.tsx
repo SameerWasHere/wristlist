@@ -50,6 +50,7 @@ function timeAgo(date: Date | null): string {
 function toAnalyticsWatch(w: {
   movement: string | null;
   category: string | null;
+  material: string | null;
   braceletType: string | null;
   shape: string | null;
   color: string | null;
@@ -64,6 +65,7 @@ function toAnalyticsWatch(w: {
   return {
     movement: w.movement || "",
     category: w.category || "",
+    material: w.material || "",
     bracelet_type: w.braceletType || "",
     shape: w.shape || "",
     color: w.color || "",
@@ -236,7 +238,6 @@ async function getProfileData(username: string) {
     ...toAnalyticsWatch(r.watch),
     sizeMm: r.watch.sizeMm ?? undefined,
     complications: (r.watch.complications as string[] | null) ?? undefined,
-    material: r.watch.material ?? undefined,
     acquiredYear: r.acquiredYear ?? undefined,
     acquiredDate: r.acquiredDate ?? undefined,
   }));
@@ -253,7 +254,6 @@ async function getProfileData(username: string) {
     ...toAnalyticsWatch(r.watch),
     sizeMm: r.watch.sizeMm ?? undefined,
     complications: (r.watch.complications as string[] | null) ?? undefined,
-    material: r.watch.material ?? undefined,
   }));
   const cGapsHuman = collectionGapsHuman(collectionExtended, wishlistExtended);
   const cTimeline = timelineStats(collectionExtended);

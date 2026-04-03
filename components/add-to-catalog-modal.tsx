@@ -25,17 +25,7 @@ interface AddToCatalogModalProps {
 
 type WizardStep = 1 | 2 | 3 | 4;
 
-const MATERIALS = [
-  "Stainless steel",
-  "Titanium",
-  "Gold",
-  "Rose gold",
-  "White gold",
-  "Ceramic",
-  "Carbon",
-  "Bronze",
-  "Platinum",
-];
+// Use KNOWN.material for the canonical list — no separate array needed
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -882,9 +872,10 @@ export function AddToCatalogModal({
                 <div className="mb-5">
                   <ChipPicker
                     label="Case Material"
-                    options={MATERIALS}
+                    options={KNOWN.material}
                     value={material || null}
                     onChange={(v) => setMaterial(v || "")}
+                    formatLabel={capitalize}
                   />
                 </div>
                 <div className="mb-5">

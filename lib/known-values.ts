@@ -1,5 +1,5 @@
 /**
- * Known values for the 8 diversity dimensions used in WristList.
+ * Known values for the 9 diversity dimensions used in WristList.
  * These are the canonical options for each attribute — used for
  * form dropdowns, diversity scoring, and gap analysis.
  */
@@ -14,6 +14,18 @@ export const KNOWN = {
     "chronograph",
     "digital",
     "gmt",
+  ],
+  material: [
+    "stainless steel",
+    "titanium",
+    "gold",
+    "rose gold",
+    "white gold",
+    "ceramic",
+    "carbon",
+    "bronze",
+    "platinum",
+    "resin",
   ],
   bracelet_type: [
     "steel bracelet",
@@ -39,6 +51,7 @@ export type KnownValues<K extends keyof typeof KNOWN> =
 export const DIMENSION_LABELS: Record<keyof typeof KNOWN, string> = {
   movement: "Movement",
   category: "Category",
+  material: "Case Material",
   bracelet_type: "Bracelet Type",
   shape: "Case Shape",
   color: "Dial Color",
@@ -47,7 +60,7 @@ export const DIMENSION_LABELS: Record<keyof typeof KNOWN, string> = {
   case_back: "Case Back",
 };
 
-/** All 8 dimension keys as an array. */
+/** All 9 dimension keys as an array. */
 export const DIMENSIONS = Object.keys(KNOWN) as (keyof typeof KNOWN)[];
 
 /** Convenience type for a single dimension key. */

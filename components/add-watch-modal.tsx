@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useClerk, SignInButton } from "@clerk/nextjs";
 import { PhotoUpload } from "@/components/photo-upload";
+import { ChipPicker } from "@/components/chip-picker";
+import { KNOWN } from "@/lib/known-values";
 
 export interface WatchData {
   id?: number;
@@ -26,9 +28,9 @@ interface AddWatchModalProps {
   onClose: () => void;
 }
 
-const CATEGORIES = ["diver", "pilot", "dress", "field", "chronograph", "digital", "gmt"];
-const MOVEMENTS = ["automatic", "quartz", "battery", "solar", "manual wind"];
-const ORIGINS = ["Swiss", "Japanese", "German", "American", "Chinese"];
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const { isSignedIn } = useUser();
@@ -57,7 +59,19 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const [manualMovement, setManualMovement] = useState("");
   const [manualSizeMm, setManualSizeMm] = useState("");
   const [manualOrigin, setManualOrigin] = useState("");
+  const [manualMaterial, setManualMaterial] = useState("");
+  const [manualColor, setManualColor] = useState("");
+  const [manualBraceletType, setManualBraceletType] = useState("");
+  const [manualShape, setManualShape] = useState("");
+  const [manualCrystal, setManualCrystal] = useState("");
+  const [manualCaseBack, setManualCaseBack] = useState("");
   const [creatingWatch, setCreatingWatch] = useState(false);
+
+  // Brand autocomplete
+  const [brands, setBrands] = useState<string[]>([]);
+  const [brandSuggestions, setBrandSuggestions] = useState<string[]>([]);
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const brandRef = useRef<HTMLDivElement>(null);
 
   // Handle open/close animation
   useEffect(() => {
@@ -97,6 +111,39 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     };
   }, [open]);
 
+  // Fetch brands for autocomplete
+  useEffect(() => {
+    if (open && manualMode && brands.length === 0) {
+      fetch("/api/catalog?brands=true")
+        .then((r) => r.json())
+        .then((data) => setBrands(data.brands ?? []))
+        .catch(() => {});
+    }
+  }, [open, manualMode, brands.length]);
+
+  // Filter brand suggestions
+  useEffect(() => {
+    if (manualBrand.length >= 1 && brands.length > 0) {
+      const lower = manualBrand.toLowerCase();
+      setBrandSuggestions(brands.filter((b) => b.toLowerCase().startsWith(lower)).slice(0, 8));
+      setShowBrandDropdown(true);
+    } else {
+      setBrandSuggestions([]);
+      setShowBrandDropdown(false);
+    }
+  }, [manualBrand, brands]);
+
+  // Close brand dropdown on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (brandRef.current && !brandRef.current.contains(e.target as Node)) {
+        setShowBrandDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   const handleAddMod = useCallback(() => {
     const trimmed = modInput.trim();
     if (trimmed && !mods.includes(trimmed)) {
@@ -128,6 +175,12 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     setManualMovement("");
     setManualSizeMm("");
     setManualOrigin("");
+    setManualMaterial("");
+    setManualColor("");
+    setManualBraceletType("");
+    setManualShape("");
+    setManualCrystal("");
+    setManualCaseBack("");
   }, []);
 
   const [saving, setSaving] = useState(false);
@@ -167,6 +220,12 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
             movement: manualMovement || undefined,
             sizeMm: manualSizeMm ? parseFloat(manualSizeMm) : undefined,
             origin: manualOrigin || undefined,
+            material: manualMaterial || undefined,
+            color: manualColor || undefined,
+            braceletType: manualBraceletType || undefined,
+            shape: manualShape || undefined,
+            crystal: manualCrystal || undefined,
+            caseBack: manualCaseBack || undefined,
           }),
         });
 
@@ -390,7 +449,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
 
                 {/* Manual entry fields */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
+                  <div ref={brandRef} className="relative">
                     <label className={labelClass}>
                       Brand <span className="text-[#8a7a5a]">*</span>
                     </label>
@@ -398,9 +457,25 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                       type="text"
                       value={manualBrand}
                       onChange={(e) => setManualBrand(e.target.value)}
+                      onFocus={() => manualBrand.length >= 1 && brandSuggestions.length > 0 && setShowBrandDropdown(true)}
                       placeholder="e.g. Omega"
                       className={inputClass}
+                      autoComplete="off"
                     />
+                    {showBrandDropdown && brandSuggestions.length > 0 && (
+                      <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-[rgba(26,24,20,0.1)] rounded-[12px] shadow-lg max-h-48 overflow-y-auto">
+                        {brandSuggestions.map((b) => (
+                          <button
+                            key={b}
+                            type="button"
+                            onClick={() => { setManualBrand(b); setShowBrandDropdown(false); }}
+                            className="w-full text-left px-3 py-2 text-[14px] hover:bg-[rgba(26,24,20,0.03)] first:rounded-t-[12px] last:rounded-b-[12px]"
+                          >
+                            {b}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className={labelClass}>
@@ -416,49 +491,19 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className={labelClass}>
-                    Reference <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={manualReference}
-                    onChange={(e) => setManualReference(e.target.value)}
-                    placeholder="e.g. 210.30.42.20.06.001"
-                    className={inputClass}
-                  />
-                </div>
-
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className={labelClass}>Category</label>
-                    <select
-                      value={manualCategory}
-                      onChange={(e) => setManualCategory(e.target.value)}
-                      className={selectClass}
-                    >
-                      <option value="">Select...</option>
-                      {CATEGORIES.map((c) => (
-                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                      ))}
-                    </select>
+                    <label className={labelClass}>
+                      Reference <span className="text-[rgba(26,24,20,0.25)]">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={manualReference}
+                      onChange={(e) => setManualReference(e.target.value)}
+                      placeholder="e.g. 210.30.42.20.06.001"
+                      className={inputClass}
+                    />
                   </div>
-                  <div>
-                    <label className={labelClass}>Movement</label>
-                    <select
-                      value={manualMovement}
-                      onChange={(e) => setManualMovement(e.target.value)}
-                      className={selectClass}
-                    >
-                      <option value="">Select...</option>
-                      {MOVEMENTS.map((m) => (
-                        <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-6">
                   <div>
                     <label className={labelClass}>Size (mm)</label>
                     <input
@@ -469,19 +514,19 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
                       className={inputClass}
                     />
                   </div>
-                  <div>
-                    <label className={labelClass}>Origin</label>
-                    <select
-                      value={manualOrigin}
-                      onChange={(e) => setManualOrigin(e.target.value)}
-                      className={selectClass}
-                    >
-                      <option value="">Select...</option>
-                      {ORIGINS.map((o) => (
-                        <option key={o} value={o}>{o}</option>
-                      ))}
-                    </select>
-                  </div>
+                </div>
+
+                {/* Dimension chip pickers */}
+                <div className="space-y-3 mb-4">
+                  <ChipPicker label="Category" options={KNOWN.category} value={manualCategory || null} onChange={(v) => setManualCategory(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Movement" options={KNOWN.movement} value={manualMovement || null} onChange={(v) => setManualMovement(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Dial Color" options={KNOWN.color} value={manualColor || null} onChange={(v) => setManualColor(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Case Material" options={KNOWN.material} value={manualMaterial || null} onChange={(v) => setManualMaterial(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Bracelet" options={KNOWN.bracelet_type} value={manualBraceletType || null} onChange={(v) => setManualBraceletType(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Origin" options={KNOWN.origin} value={manualOrigin || null} onChange={(v) => setManualOrigin(v || "")} />
+                  <ChipPicker label="Case Shape" options={KNOWN.shape} value={manualShape || null} onChange={(v) => setManualShape(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Crystal" options={KNOWN.crystal} value={manualCrystal || null} onChange={(v) => setManualCrystal(v || "")} formatLabel={capitalize} />
+                  <ChipPicker label="Case Back" options={KNOWN.case_back} value={manualCaseBack || null} onChange={(v) => setManualCaseBack(v || "")} formatLabel={capitalize} />
                 </div>
 
                 {/* Back link */}

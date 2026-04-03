@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
     sizeMm: sizeMm ? parseFloat(sizeMm) : null,
     origin: normalizeDimensionValue("origin", origin) || null,
     crystal: normalizeDimensionValue("crystal", crystal) || null,
-    material: material || null,
+    material: normalizeDimensionValue("material", material) || null,
     color: normalizeDimensionValue("color", color) || null,
     braceletType: normalizeDimensionValue("braceletType", braceletType) || null,
     waterResistanceM: waterResistanceM ? parseInt(waterResistanceM) : null,

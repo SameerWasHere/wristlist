@@ -7,6 +7,7 @@ import { KNOWN, type Dimension } from "./known-values";
 const FIELD_TO_DIMENSION: Record<string, Dimension> = {
   movement: "movement",
   category: "category",
+  material: "material",
   braceletType: "bracelet_type",
   shape: "shape",
   color: "color",
@@ -59,6 +60,20 @@ const ALIASES: Partial<Record<Dimension, Record<string, string>>> = {
     nylon: "textile strap",
     mesh: "mesh bracelet",
     milanese: "mesh bracelet",
+  },
+  material: {
+    steel: "stainless steel",
+    ss: "stainless steel",
+    "stainless": "stainless steel",
+    ti: "titanium",
+    "yellow gold": "gold",
+    "18k gold": "gold",
+    "pink gold": "rose gold",
+    "red gold": "rose gold",
+    "white gold": "white gold",
+    "carbon fiber": "carbon",
+    forged: "carbon",
+    plastic: "resin",
   },
 };
 

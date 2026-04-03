@@ -7,6 +7,7 @@ import { KNOWN, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./known-val
 export interface AnalyticsWatch {
   movement: string;
   category: string;
+  material: string;
   bracelet_type: string;
   shape: string;
   color: string;
@@ -376,7 +377,6 @@ export { collectValues };
 export interface ExtendedWatch extends AnalyticsWatch {
   sizeMm?: number;
   complications?: string[];
-  material?: string;
   acquiredYear?: number;
   acquiredDate?: string;
 }
@@ -527,6 +527,7 @@ export function collectionGapsHuman(watches: ExtendedWatch[], wishlist: Extended
   const movements = new Set(combined.map((w) => w.movement?.toLowerCase()).filter(Boolean));
   const origins = new Set(combined.map((w) => w.origin?.toLowerCase()).filter(Boolean));
   const bracelets = new Set(combined.map((w) => w.bracelet_type?.toLowerCase()).filter(Boolean));
+  const materials = new Set(combined.map((w) => w.material?.toLowerCase()).filter(Boolean));
   const sizes = watches.map((w) => w.sizeMm).filter((s): s is number => s != null && s > 0);
 
   const topOriginVal = mode(watches.map((w) => w.origin?.toLowerCase() ?? "").filter(Boolean));
@@ -577,6 +578,11 @@ export function collectionGapsHuman(watches: ExtendedWatch[], wishlist: Extended
     const suggestions = ["leather strap", "rubber strap", "nato strap", "steel bracelet", "mesh bracelet"];
     const alt = suggestions.find((s) => s !== current) || "something different";
     gaps.push(`A different strap -- try ${alt} for variety`);
+  }
+
+  // Material diversity
+  if (materials.size === 1 && materials.has("stainless steel")) {
+    gaps.push("A different material -- try titanium, ceramic, or bronze for variety");
   }
 
   // Return top 3-5

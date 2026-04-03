@@ -53,8 +53,8 @@ export function VariationRow({
     shape && { label: "Shape", value: shape },
   ].filter(Boolean) as { label: string; value: string }[];
 
-  // Count how many of the 8 analytics dimensions are filled
-  const dimensionFields = [movement, category, braceletType, shape, color, crystal, origin, caseBack];
+  // Count how many of the 9 analytics dimensions are filled
+  const dimensionFields = [movement, category, material, braceletType, shape, color, crystal, origin, caseBack];
   const specsFilled = dimensionFields.filter((v) => v != null && v !== "").length;
   const specsTotal = dimensionFields.length;
 
