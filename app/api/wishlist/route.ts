@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/lib/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // GET /api/wishlist — get the current user's wishlist
 export async function GET() {
@@ -110,6 +110,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Watch already on wishlist" }, { status: 409 });
   }
 
+  // Set position to end of list
+  const [maxPos] = await db
+    .select({ max: sql<number>`coalesce(max(${schema.userWatches.position}), -1)` })
+    .from(schema.userWatches)
+    .where(and(eq(schema.userWatches.userId, user.id), eq(schema.userWatches.status, "wishlist")));
+
   const [entry] = await db
     .insert(schema.userWatches)
     .values({
@@ -118,6 +124,7 @@ export async function POST(request: NextRequest) {
       status: "wishlist",
       caption: caption || null,
       photos: photos || [],
+      position: (maxPos?.max ?? -1) + 1,
     })
     .returning();
 

@@ -150,6 +150,7 @@ export const userWatches = pgTable("user_watches", {
   notes: text("notes"),
   caption: text("caption"),
   photos: jsonb("photos").$type<string[]>().default([]),
+  position: integer("position").default(0).notNull(),
   isPublic: boolean("is_public").default(true).notNull(),
   dateAdded: timestamp("date_added").defaultNow().notNull(),
 });

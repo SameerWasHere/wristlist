@@ -14,6 +14,7 @@ import { ProfileSearch } from "./profile-search";
 import { CollectionInsights } from "./collection-insights";
 import { WishlistEditButton } from "./wishlist-edit-button";
 import { PromoteButton } from "./promote-button";
+import { SortableWishlist } from "./sortable-wishlist";
 import { getDb, schema } from "@/lib/db";
 import {
   diversityScore,
@@ -139,7 +140,8 @@ async function getProfileData(username: string) {
         eq(schema.userWatches.userId, user.id),
         eq(schema.userWatches.status, "wishlist")
       )
-    );
+    )
+    .orderBy(schema.userWatches.position);
 
   // Follower count
   let followerCount = 0;
@@ -536,7 +538,7 @@ export default async function ProfilePage({
         )}
 
         {/* -- The Wishlist --------------------------------------------- */}
-        {/* Owner view: ranked with gap counts and remove buttons */}
+        {/* Owner view: draggable, with gap counts and action buttons */}
         {isOwner && rankedWishlist.length > 0 && (
           <section className="mb-14">
             <div className="flex justify-between items-baseline mb-5 pb-3 border-b border-[rgba(26,24,20,0.06)]">
@@ -545,104 +547,11 @@ export default async function ProfilePage({
               </h2>
               <span className="text-[12px] text-[rgba(26,24,20,0.25)] font-medium">
                 {rankedWishlist.length} piece
-                {rankedWishlist.length !== 1 ? "s" : ""}
+                {rankedWishlist.length !== 1 ? "s" : ""} &middot; drag to reorder
               </span>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {rankedWishlist.map((w) => (
-                <div
-                  key={w.rank}
-                  className="flex gap-3 sm:gap-4 items-center px-3 sm:px-5 py-3 sm:py-4 bg-white border border-[rgba(26,24,20,0.06)] rounded-[18px]"
-                >
-                  <span className="text-[12px] font-black text-[rgba(26,24,20,0.12)] w-5 text-center flex-shrink-0">
-                    {String(w.rank).padStart(2, "0")}
-                  </span>
-
-                  <div
-                    className="w-12 h-12 rounded-[14px] flex-shrink-0 flex items-center justify-center overflow-hidden"
-                    style={{
-                      background:
-                        "linear-gradient(145deg,#20202a,#10101a)",
-                    }}
-                  >
-                    {w.imageUrl ? (
-                      <img src={w.imageUrl} alt={`${w.brand} ${w.model}`} className="w-full h-full object-contain p-1" />
-                    ) : (
-                      <span className="font-black text-[18px] text-white/5">{w.brand.charAt(0)}</span>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    {w.slug ? (
-                      <Link href={`/watch/${w.slug}`} className="group">
-                        <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
-                          {w.brand}
-                        </p>
-                        <p className="text-[14px] font-bold tracking-[-0.2px] truncate group-hover:text-[#8a7a5a] transition-colors">
-                          {w.model}
-                        </p>
-                      </Link>
-                    ) : (
-                      <>
-                        <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
-                          {w.brand}
-                        </p>
-                        <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
-                          {w.model}
-                        </p>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {w.gapsFilled > 0 && (
-                      <span className="text-[9px] font-bold text-[#6b8f4e] mr-1">
-                        Fills {w.gapsFilled} gap
-                        {w.gapsFilled !== 1 ? "s" : ""}
-                      </span>
-                    )}
-                    {w.userWatchId > 0 && (
-                      <PromoteButton
-                        userWatchId={w.userWatchId}
-                        brand={w.brand}
-                        model={w.model}
-                        reference={w.reference}
-                        category={w.category}
-                        sizeMm={w.sizeMm}
-                        movement={w.movement}
-                        origin={w.origin}
-                        wishlistNote={w.caption}
-                      />
-                    )}
-                    {w.userWatchId > 0 && (
-                      <WishlistEditButton
-                        userWatchId={w.userWatchId}
-                        brand={w.brand}
-                        model={w.model}
-                        reference={w.reference}
-                        category={w.category}
-                        sizeMm={w.sizeMm}
-                        movement={w.movement}
-                        origin={w.origin}
-                        caption={w.caption}
-                        milestone={w.milestone}
-                        modelYear={w.modelYear}
-                        acquiredYear={w.acquiredYear}
-                        modifications={w.modifications}
-                        photos={w.photos}
-                      />
-                    )}
-                    {w.userWatchId > 0 && (
-                      <RemoveWatchButton
-                        userWatchId={w.userWatchId}
-                        type="wishlist"
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SortableWishlist items={rankedWishlist} isOwner={true} />
           </section>
         )}
 

@@ -1,0 +1,1 @@
+ALTER TABLE "user_watches" ADD COLUMN "position" integer DEFAULT 0 NOT NULL;
