@@ -39,7 +39,7 @@ export const KNOWN = {
   shape: ["round", "rectangular", "square", "tonneau", "cushion"],
   color: ["black", "white", "blue", "green", "gold", "silver", "brown", "gray"],
   crystal: ["sapphire", "mineral", "hesalite", "acrylic"],
-  origin: ["Swiss", "Japanese", "German", "American", "Chinese"],
+  origin: ["Swiss", "Japanese", "German", "American", "Chinese", "French"],
   case_back: ["solid", "display", "exhibition", "skeleton"],
 } as const;
 
