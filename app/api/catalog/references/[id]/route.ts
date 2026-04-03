@@ -78,6 +78,8 @@ export async function PATCH(
 
   const body = await request.json();
   const allowedFields = [
+    "brand",
+    "model",
     "reference",
     "sizeMm",
     "movement",

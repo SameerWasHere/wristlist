@@ -8,6 +8,8 @@ interface EditReferenceModalProps {
   onClose: () => void;
   referenceId: number;
   current: {
+    brand?: string | null;
+    model?: string | null;
     reference: string;
     sizeMm: number | null;
     movement: string | null;
@@ -36,6 +38,8 @@ export function EditReferenceModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [brand, setBrand] = useState(current.brand || "");
+  const [model, setModel] = useState(current.model || "");
   const [reference, setReference] = useState(current.reference);
   const [sizeMm, setSizeMm] = useState(current.sizeMm?.toString() || "");
   const [movement, setMovement] = useState(current.movement || "");
@@ -74,6 +78,8 @@ export function EditReferenceModal({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          brand: brand.trim() || null,
+          model: model.trim() || null,
           reference: reference.trim(),
           sizeMm: sizeMm ? parseFloat(sizeMm) : null,
           movement: movement.trim() || null,
@@ -108,6 +114,8 @@ export function EditReferenceModal({
   }
 
   const fields = [
+    { label: "Brand", value: brand, set: setBrand },
+    { label: "Model", value: model, set: setModel },
     { label: "Reference", value: reference, set: setReference },
     { label: "Size (mm)", value: sizeMm, set: setSizeMm },
     { label: "Movement", value: movement, set: setMovement },
