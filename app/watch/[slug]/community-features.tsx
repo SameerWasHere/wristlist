@@ -58,6 +58,8 @@ export function ReferenceEditButton({
 }: {
   referenceId: number;
   current: {
+    brand?: string | null;
+    model?: string | null;
     reference: string;
     sizeMm: number | null;
     movement: string | null;

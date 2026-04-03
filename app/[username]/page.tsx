@@ -312,6 +312,7 @@ async function getProfileData(username: string) {
       modifications: (row?.modifications as string[] | null) || undefined,
       photos: (row?.photos as string[] | null) || undefined,
       gapsFilled: item.gapsFilled,
+      slug: row?.watch.slug || undefined,
     };
   });
 
@@ -568,12 +569,25 @@ export default async function ProfilePage({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
-                      {w.brand}
-                    </p>
-                    <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
-                      {w.model}
-                    </p>
+                    {w.slug ? (
+                      <Link href={`/watch/${w.slug}`} className="group">
+                        <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
+                          {w.brand}
+                        </p>
+                        <p className="text-[14px] font-bold tracking-[-0.2px] truncate group-hover:text-[#8a7a5a] transition-colors">
+                          {w.model}
+                        </p>
+                      </Link>
+                    ) : (
+                      <>
+                        <p className="text-[8px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.25)] font-bold">
+                          {w.brand}
+                        </p>
+                        <p className="text-[14px] font-bold tracking-[-0.2px] truncate">
+                          {w.model}
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1 flex-shrink-0">

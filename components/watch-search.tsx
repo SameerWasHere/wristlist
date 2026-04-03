@@ -468,6 +468,15 @@ export function WatchSearch({ onAdd, onWatchAdded }: WatchSearchProps) {
               </div>
             );
           })}
+          {/* Always show "Can't find" at bottom of popular list */}
+          <div className="border-t border-[rgba(26,24,20,0.06)] px-5 py-4 text-center">
+            <button
+              onClick={() => setCatalogOpen(true)}
+              className="text-[13px] text-[#8a7a5a] font-medium hover:underline"
+            >
+              Can&apos;t find your watch? <span className="font-semibold">Add it to the catalog</span>
+            </button>
+          </div>
         </div>
       </div>
 

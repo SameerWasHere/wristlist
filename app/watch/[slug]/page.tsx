@@ -7,6 +7,7 @@ import { eq, sql, and, ne, inArray } from "drizzle-orm";
 import { FamilyEditButton, ReferenceEditButton, HistoryButton } from "./community-features";
 import { AddVariationButton } from "./add-variation-button";
 import { VariationRow } from "./variation-row";
+import { AddToCollectionButton } from "./add-to-collection-button";
 
 export const dynamic = "force-dynamic";
 
@@ -860,12 +861,30 @@ async function renderLegacyPage(watch: {
               </p>
             )}
 
-            {/* Edit button for signed-in users */}
+            {/* Actions for signed-in users */}
             {isSignedIn && (
-              <div className="mb-6">
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <AddToCollectionButton
+                  watch={{
+                    id: watch.id,
+                    brand: watch.brand,
+                    model: watch.model,
+                    reference: watch.reference,
+                    category: watch.category || undefined,
+                    sizeMm: watch.sizeMm || undefined,
+                    movement: watch.movement || undefined,
+                    origin: watch.origin || undefined,
+                    crystal: watch.crystal || undefined,
+                    braceletType: watch.braceletType || undefined,
+                    material: watch.material || undefined,
+                    color: watch.color || undefined,
+                  }}
+                />
                 <ReferenceEditButton
                   referenceId={watch.id}
                   current={{
+                    brand: watch.brand,
+                    model: watch.model,
                     reference: watch.reference,
                     sizeMm: watch.sizeMm,
                     movement: watch.movement,
