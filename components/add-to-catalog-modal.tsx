@@ -611,10 +611,13 @@ export function AddToCatalogModal({
                   Step 2 of 4
                 </p>
                 <h2 className="text-[28px] font-serif italic text-[#1a1814] leading-tight mb-2">
-                  Which model?
+                  Which {brand} watch?
                 </h2>
-                <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-6">
-                  Pick an existing {brand} model or add a new one.
+                <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-2">
+                  Select the watch line from {brand}&apos;s catalog below, or add a new one if it&apos;s not listed.
+                </p>
+                <p className="text-[11px] text-[rgba(26,24,20,0.25)] mb-6">
+                  Example: For a Rolex, you&apos;d pick &quot;Submariner&quot; — you&apos;ll add your specific reference (like 126610LN) in the next step.
                 </p>
 
                 {/* Loading */}
@@ -704,11 +707,14 @@ export function AddToCatalogModal({
 
                 {/* New model input */}
                 {!familyLoading && (
-                  <div className="bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] p-4">
-                    <p className="text-[11px] uppercase tracking-[1.5px] font-medium text-[rgba(26,24,20,0.35)] mb-2">
+                  <div className="bg-white rounded-[16px] border border-dashed border-[rgba(26,24,20,0.12)] p-4">
+                    <p className="text-[12px] font-semibold text-[#1a1814] mb-1">
                       {familyMatches.length > 0
-                        ? "Or add a new model"
-                        : "Enter the model name"}
+                        ? "Don't see it? Add a new watch line"
+                        : "Add this watch line to the catalog"}
+                    </p>
+                    <p className="text-[11px] text-[rgba(26,24,20,0.35)] mb-3">
+                      Enter the watch line name (e.g. &quot;Submariner&quot;, &quot;Speedmaster&quot;, &quot;Alpinist&quot;). Don&apos;t include the size or reference number.
                     </p>
                     <div className="flex gap-2">
                       <input
@@ -719,7 +725,7 @@ export function AddToCatalogModal({
                           if (e.key === "Enter" && model.trim())
                             selectNewModel();
                         }}
-                        placeholder="e.g. Submariner, Speedmaster..."
+                        placeholder="Watch line name..."
                         className={inputClass}
                       />
                       <button
@@ -743,25 +749,27 @@ export function AddToCatalogModal({
                   Step 3 of 4
                 </p>
                 <h2 className="text-[28px] font-serif italic text-[#1a1814] leading-tight mb-1">
-                  Your watch&apos;s details
+                  Specific variation
                 </h2>
 
                 {selectedFamily ? (
-                  <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-6">
-                    Adding a new variation to{" "}
+                  <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-2">
+                    Adding a variation of{" "}
                     <span className="font-semibold text-[#1a1814]">
                       {brand} {selectedFamily.model}
                     </span>
                   </p>
                 ) : (
-                  <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-6">
-                    Tell us what makes your{" "}
+                  <p className="text-[14px] text-[rgba(26,24,20,0.4)] mb-2">
+                    Describe this specific{" "}
                     <span className="font-semibold text-[#1a1814]">
                       {brand} {model}
-                    </span>{" "}
-                    unique.
+                    </span>
                   </p>
                 )}
+                <p className="text-[11px] text-[rgba(26,24,20,0.25)] mb-6">
+                  Enter the reference number and specs that identify this exact watch. Different dial colors, sizes, or materials are different variations.
+                </p>
 
                 {/* Reference number - required */}
                 <div className="mb-5">
