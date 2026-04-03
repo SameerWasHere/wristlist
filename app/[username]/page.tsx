@@ -249,7 +249,13 @@ async function getProfileData(username: string) {
   // New analytics
   const cStats = collectionStats(collectionExtended);
   const cBrands = brandBreakdown(collectionExtended);
-  const cGapsHuman = collectionGapsHuman(collectionExtended);
+  const wishlistExtended: ExtendedWatch[] = wishlistRows.map((r) => ({
+    ...toAnalyticsWatch(r.watch),
+    sizeMm: r.watch.sizeMm ?? undefined,
+    complications: (r.watch.complications as string[] | null) ?? undefined,
+    material: r.watch.material ?? undefined,
+  }));
+  const cGapsHuman = collectionGapsHuman(collectionExtended, wishlistExtended);
   const cTimeline = timelineStats(collectionExtended);
 
   // Top 3 worst gaps (by coverage % ascending)
@@ -290,32 +296,31 @@ async function getProfileData(username: string) {
     notes: r.notes || undefined,
   }));
 
-  // Wishlist ranked by gaps filled (owner view)
-  const rankedWishlist = nbp.map((item, i) => {
-    const row = wishlistRows.find(
-      (r) =>
-        r.watch.brand === item.watch.brand &&
-        r.watch.model === item.watch.model
+  // Wishlist ordered by user's position (drag order), enriched with gap data
+  const rankedWishlist = wishlistRows.map((r, i) => {
+    // Find gap count for this watch from NBP data
+    const nbpItem = nbp.find(
+      (n) => n.watch.brand === r.watch.brand && n.watch.model === r.watch.model
     );
     return {
       rank: i + 1,
-      userWatchId: row?.id ?? 0,
-      brand: item.watch.brand,
-      model: item.watch.model,
-      reference: row?.watch.reference || "",
-      category: row?.watch.category || undefined,
-      sizeMm: row?.watch.sizeMm || undefined,
-      movement: row?.watch.movement || undefined,
-      origin: row?.watch.origin || undefined,
-      caption: row?.caption || undefined,
-      milestone: row?.milestone || undefined,
-      modelYear: row?.modelYear || undefined,
-      acquiredYear: row?.acquiredYear || undefined,
-      modifications: (row?.modifications as string[] | null) || undefined,
-      photos: (row?.photos as string[] | null) || undefined,
-      gapsFilled: item.gapsFilled,
-      slug: row?.watch.slug || undefined,
-      imageUrl: row?.watch.imageUrl || undefined,
+      userWatchId: r.id,
+      brand: r.watch.brand,
+      model: r.watch.model,
+      reference: r.watch.reference || "",
+      category: r.watch.category || undefined,
+      sizeMm: r.watch.sizeMm || undefined,
+      movement: r.watch.movement || undefined,
+      origin: r.watch.origin || undefined,
+      caption: r.caption || undefined,
+      milestone: r.milestone || undefined,
+      modelYear: r.modelYear || undefined,
+      acquiredYear: r.acquiredYear || undefined,
+      modifications: (r.modifications as string[] | null) || undefined,
+      photos: (r.photos as string[] | null) || undefined,
+      gapsFilled: nbpItem?.gapsFilled ?? 0,
+      slug: r.watch.slug || undefined,
+      imageUrl: r.watch.imageUrl || undefined,
     };
   });
 

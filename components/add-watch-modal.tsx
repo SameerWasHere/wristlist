@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useUser, useClerk, SignInButton } from "@clerk/nextjs";
 import { PhotoUpload } from "@/components/photo-upload";
 
@@ -32,6 +33,7 @@ const ORIGINS = ["Swiss", "Japanese", "German", "American", "Chinese"];
 export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
   const { isSignedIn } = useUser();
   const clerk = useClerk();
+  const router = useRouter();
   const [status, setStatus] = useState<"collection" | "wishlist">("collection");
   const [modelYear, setModelYear] = useState("");
   const [acquiredMonth, setAcquiredMonth] = useState("");
@@ -243,6 +245,7 @@ export function AddWatchModal({ watch, open, onClose }: AddWatchModalProps) {
     }, 3000);
     onClose();
     resetForm();
+    router.refresh();
   }, [status, watch, modelYear, acquiredYear, milestone, caption, photos, mods, onClose, isSignedIn, clerk, manualMode, manualBrand, manualModel, manualReference, manualCategory, manualMovement, manualSizeMm, manualOrigin, resetForm]);
 
   if (!animating && !open) return null;

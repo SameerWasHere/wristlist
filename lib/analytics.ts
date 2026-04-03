@@ -515,15 +515,18 @@ export function brandBreakdown(watches: ExtendedWatch[]): BrandBreakdownItem[] {
 // 9. collectionGapsHuman
 // ---------------------------------------------------------------------------
 
-export function collectionGapsHuman(watches: ExtendedWatch[]): string[] {
+export function collectionGapsHuman(watches: ExtendedWatch[], wishlist: ExtendedWatch[] = []): string[] {
   if (watches.length === 0) return [];
+
+  // Combine collection + wishlist to avoid suggesting gaps the wishlist already fills
+  const combined = [...watches, ...wishlist];
 
   const gaps: string[] = [];
 
-  const categories = new Set(watches.map((w) => w.category?.toLowerCase()).filter(Boolean));
-  const movements = new Set(watches.map((w) => w.movement?.toLowerCase()).filter(Boolean));
-  const origins = new Set(watches.map((w) => w.origin?.toLowerCase()).filter(Boolean));
-  const bracelets = new Set(watches.map((w) => w.bracelet_type?.toLowerCase()).filter(Boolean));
+  const categories = new Set(combined.map((w) => w.category?.toLowerCase()).filter(Boolean));
+  const movements = new Set(combined.map((w) => w.movement?.toLowerCase()).filter(Boolean));
+  const origins = new Set(combined.map((w) => w.origin?.toLowerCase()).filter(Boolean));
+  const bracelets = new Set(combined.map((w) => w.bracelet_type?.toLowerCase()).filter(Boolean));
   const sizes = watches.map((w) => w.sizeMm).filter((s): s is number => s != null && s > 0);
 
   const topOriginVal = mode(watches.map((w) => w.origin?.toLowerCase() ?? "").filter(Boolean));

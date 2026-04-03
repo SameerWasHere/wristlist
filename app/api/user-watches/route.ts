@@ -35,6 +35,10 @@ export async function PATCH(request: NextRequest) {
   if (body.notes !== undefined) updates.notes = body.notes || null;
   if (body.status !== undefined && (body.status === "collection" || body.status === "wishlist")) {
     updates.status = body.status;
+    // Clear wishlist position when promoting to collection
+    if (body.status === "collection") {
+      updates.position = null;
+    }
   }
 
   if (Object.keys(updates).length === 0) return NextResponse.json({ entry: existing });
