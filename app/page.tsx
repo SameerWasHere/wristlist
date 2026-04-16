@@ -282,12 +282,12 @@ export default async function Home() {
       {/* Hero */}
       <HeroSection profileUrl={isSignedIn ? profileUrl : undefined} stats={stats} />
 
-      {/* 1. Trending Watches — visual, shows the site is alive */}
-      <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
-        <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
-          Trending This Week
-        </p>
-        {hasTrending ? (
+      {/* 1. Trending Watches — only show when there's data */}
+      {hasTrending && (
+        <section className="max-w-[960px] mx-auto px-4 sm:px-6 pb-16">
+          <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-6">
+            Trending This Week
+          </p>
           <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 snap-x">
             {trending.map((w) => (
               <Link
@@ -312,15 +312,8 @@ export default async function Home() {
               </Link>
             ))}
           </div>
-        ) : (
-          <div className="bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] p-8 text-center">
-            <p className="text-[14px] text-[rgba(26,24,20,0.35)]">
-              Add watches to your collection to see what&apos;s trending.{" "}
-              <Link href="/catalog" className="text-[#8a7a5a] hover:underline font-medium">Browse the catalog</Link>
-            </p>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* 2. Featured Collectors — social proof */}
       {hasCollectors && (
@@ -414,11 +407,19 @@ export default async function Home() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] p-8 text-center">
-            <p className="text-[14px] text-[rgba(26,24,20,0.35)]">
-              The feed comes alive when collectors add watches.{" "}
-              <Link href="/catalog" className="text-[#8a7a5a] hover:underline font-medium">Browse the catalog</Link> to get started.
+          <div className="bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] p-10 text-center">
+            <p className="text-[16px] font-serif italic text-[rgba(26,24,20,0.45)] mb-2">
+              Be the first to share your collection
             </p>
+            <p className="text-[13px] text-[rgba(26,24,20,0.3)] mb-5 max-w-sm mx-auto">
+              Add watches to your profile and your activity will show up here for the community to see.
+            </p>
+            <Link
+              href="/catalog"
+              className="inline-block px-6 py-2.5 text-[13px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity"
+            >
+              Browse the Catalog
+            </Link>
           </div>
         )}
       </section>

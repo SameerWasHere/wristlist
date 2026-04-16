@@ -148,8 +148,9 @@ async function getProfileData(username: string) {
     )
     .orderBy(schema.userWatches.position);
 
-  // Follower count
+  // Follower count + viewer follow state
   let followerCount = 0;
+  let viewerIsFollowing = false;
   try {
     const [result] = await db
       .select({ count: sql<number>`count(*)` })
@@ -425,6 +426,34 @@ export default async function ProfilePage({
   const { userId: viewerClerkId } = await auth();
   const isOwner = viewerClerkId ? user.clerkId === viewerClerkId : false;
 
+  // Check if viewer follows this profile
+  let viewerIsFollowing = false;
+  if (viewerClerkId && !isOwner) {
+    try {
+      const db = getDb();
+      const [viewer] = await db
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.clerkId, viewerClerkId))
+        .limit(1);
+      if (viewer) {
+        const [followRow] = await db
+          .select({ id: schema.follows.id })
+          .from(schema.follows)
+          .where(
+            and(
+              eq(schema.follows.followerId, viewer.id),
+              eq(schema.follows.followingId, user.id),
+            ),
+          )
+          .limit(1);
+        viewerIsFollowing = !!followRow;
+      }
+    } catch {
+      // follows table may not exist yet
+    }
+  }
+
   const displayName = user.displayName || user.username;
   const hasWatches = collectionRows.length > 0 || wishlistRows.length > 0;
   const initial = displayName.charAt(0).toUpperCase();
@@ -485,7 +514,7 @@ export default async function ProfilePage({
             <div className="flex-shrink-0 flex items-start">
               <FollowButton
                 userId={user.id}
-                isFollowing={false}
+                isFollowing={viewerIsFollowing}
                 followerCount={followerCount}
               />
             </div>

@@ -5,6 +5,7 @@ import { sql, eq, desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { CatalogGrid } from "./catalog-grid";
 import type { CatalogFamily } from "./catalog-grid";
+import { AddWatchCta } from "./add-watch-cta";
 import Link from "next/link";
 
 function timeAgo(date: Date | null): string {
@@ -242,12 +243,7 @@ export default async function CatalogPage() {
 
         {/* CTA at bottom */}
         <div className="mt-12 text-center">
-          <Link
-            href={profileUrl}
-            className="inline-block px-6 py-3 text-[13px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:opacity-90 transition-opacity"
-          >
-            Don&apos;t see your watch? Add it
-          </Link>
+          <AddWatchCta />
         </div>
       </section>
 

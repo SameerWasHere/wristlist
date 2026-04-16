@@ -23,7 +23,6 @@ export function RemoveWatchButton({ userWatchId, type }: RemoveWatchButtonProps)
   function startConfirm() {
     setConfirming(true);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setConfirming(false), 3000);
   }
 
   function cancelConfirm() {
