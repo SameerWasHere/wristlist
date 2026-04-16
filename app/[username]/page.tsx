@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { ScoreRing } from "@/components/score-ring";
 import { DnaTags } from "@/components/dna-tags";
 import { CollectionTimeline } from "@/components/collection-timeline";
@@ -702,15 +703,7 @@ export default async function ProfilePage({
           </section>
         )}
 
-        {/* -- Footer --------------------------------------------------- */}
-        <footer className="text-center py-8">
-          <p className="text-[13px] font-light tracking-[4px] uppercase text-[rgba(26,24,20,0.2)]">
-            <strong className="font-bold">WRIST</strong>LIST
-          </p>
-          <p className="text-[11px] text-[rgba(26,24,20,0.15)] mt-2 font-serif italic">
-            Every collection tells a story.
-          </p>
-        </footer>
+        <Footer />
       </div>
     </div>
   );

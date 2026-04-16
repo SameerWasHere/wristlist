@@ -2,6 +2,7 @@
 
 import { SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { HeroSearch } from "./hero-search";
 
 interface HeroSectionProps {
   profileUrl?: string;
@@ -22,6 +23,9 @@ export function HeroSection({ profileUrl = "/dashboard", stats }: HeroSectionPro
       <p className="text-[14px] text-[rgba(26,24,20,0.35)] mt-3 max-w-md mx-auto">
         Track your watches. Build your wishlist. See how your taste compares.
       </p>
+
+      {/* Search bar */}
+      <HeroSearch />
 
       {/* Live stats */}
       {stats && (stats.watches > 0 || stats.collectors > 0) && (

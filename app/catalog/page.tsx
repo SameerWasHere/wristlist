@@ -1,4 +1,5 @@
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { getDb, schema } from "@/lib/db";
 import { sql, eq, desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
@@ -250,17 +251,7 @@ export default async function CatalogPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[rgba(26,24,20,0.06)] py-12">
-        <div className="max-w-[960px] mx-auto px-4 sm:px-6 text-center">
-          <p className="text-[15px] font-light tracking-[4px] uppercase text-foreground">
-            <strong className="font-bold">WRIST</strong>LIST
-          </p>
-          <p className="text-[14px] font-serif italic text-[rgba(26,24,20,0.3)] mt-2">
-            Every collection tells a story.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { TopList } from "@/components/top-list";
 import { CollectorCard } from "@/components/collector-card";
 import { HeroSection } from "./hero-section";
@@ -292,20 +293,22 @@ export default async function Home() {
               <Link
                 key={w.watchId}
                 href={`/watch/${w.slug}`}
-                className="snap-start flex-shrink-0 bg-white rounded-[16px] shadow-[0_1px_4px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] p-4 w-[160px] sm:w-[180px] hover:shadow-[0_4px_20px_rgba(26,24,20,0.1)] hover:border-[rgba(26,24,20,0.1)] transition-all duration-300 no-underline text-inherit"
+                className="snap-start flex-shrink-0 bg-white rounded-[16px] shadow-[0_1px_4px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden w-[200px] sm:w-[220px] hover:shadow-[0_4px_20px_rgba(26,24,20,0.1)] hover:border-[rgba(26,24,20,0.1)] transition-all duration-300 no-underline text-inherit group"
               >
-                <div className="w-full h-[80px] rounded-[10px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] overflow-hidden mb-3">
+                <div className="w-full h-[140px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] overflow-hidden">
                   {w.imageUrl ? (
-                    <img src={w.imageUrl} alt={`${w.brand} ${w.model}`} className="w-full h-full object-contain p-2" />
+                    <img src={w.imageUrl} alt={`${w.brand} ${w.model}`} className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-white/20 text-[20px] font-bold">{w.brand.charAt(0)}</span>
+                      <span className="text-white/15 text-[32px] font-bold font-serif">{w.brand.charAt(0)}</span>
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] uppercase tracking-[1px] text-[rgba(26,24,20,0.4)] font-medium truncate">{w.brand}</p>
-                <p className="text-[13px] font-semibold text-foreground truncate mt-0.5">{w.model}</p>
-                <p className="text-[11px] text-[#8a7a5a] font-medium mt-1">{w.count} {w.count === 1 ? "add" : "adds"} this week</p>
+                <div className="p-4">
+                  <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.35)] font-medium truncate">{w.brand}</p>
+                  <p className="text-[14px] font-semibold text-foreground truncate mt-0.5">{w.model}</p>
+                  <p className="text-[11px] text-[#8a7a5a] font-medium mt-1.5">{w.count} {w.count === 1 ? "add" : "adds"} this week</p>
+                </div>
               </Link>
             ))}
           </div>
@@ -423,17 +426,7 @@ export default async function Home() {
       {/* 5. CTA Banner — for non-signed-in visitors */}
       {!isSignedIn && <CtaBanner />}
 
-      {/* Footer */}
-      <footer className="border-t border-[rgba(26,24,20,0.06)] py-12">
-        <div className="max-w-[960px] mx-auto px-4 sm:px-6 text-center">
-          <p className="text-[15px] font-light tracking-[4px] uppercase text-foreground">
-            <strong className="font-bold">WRIST</strong>LIST
-          </p>
-          <p className="text-[14px] font-serif italic text-[rgba(26,24,20,0.3)] mt-2">
-            Every collection tells a story.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
