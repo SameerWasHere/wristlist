@@ -108,6 +108,11 @@ export function VariationRow({
               <span className="text-[11px] text-[rgba(26,24,20,0.35)] flex-shrink-0">👥</span>
             )}
           </div>
+          {description && (
+            <p className="text-[12px] font-serif italic text-[rgba(26,24,20,0.55)] leading-snug mt-1 line-clamp-2">
+              {description}
+            </p>
+          )}
           {/* All 12 editable specs in a compact 3-column grid */}
           {(() => {
             const quickSpecs = [
@@ -126,7 +131,7 @@ export function VariationRow({
             ].filter((s) => s.value);
             if (quickSpecs.length === 0) return null;
             return (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 mt-3">
                 {quickSpecs.map((s) => (
                   <div key={s.label} className="min-w-0">
                     <p className="text-[9px] uppercase tracking-[1.2px] text-[rgba(26,24,20,0.25)] font-medium leading-tight">
@@ -140,11 +145,6 @@ export function VariationRow({
               </div>
             );
           })()}
-          {description && (
-            <p className="text-[12px] font-serif italic text-[rgba(26,24,20,0.55)] leading-snug mt-2.5 line-clamp-2">
-              {description}
-            </p>
-          )}
         </Link>
 
         {/* Count + expand toggle (separate button, sibling to the Links) */}

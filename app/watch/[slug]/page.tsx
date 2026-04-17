@@ -445,6 +445,15 @@ async function renderFamilyPage(family: {
         }, variations[0])
       : null;
 
+  // Sort variations by collector count (most popular first), then by reference
+  // so the order shown on the family page matches the ordering in the hero.
+  const sortedVariations = [...variations].sort((a, b) => {
+    const ca = collectorCounts.get(a.id) || 0;
+    const cb = collectorCounts.get(b.id) || 0;
+    if (cb !== ca) return cb - ca;
+    return (a.reference || "").localeCompare(b.reference || "");
+  });
+
   // Build a reference-id-to-ref map for showing which ref each collector owns
   const refMap = new Map(variations.map((v) => [v.id, v]));
 
@@ -541,7 +550,7 @@ async function renderFamilyPage(family: {
               {variations.length} {variations.length === 1 ? "Variation" : "Variations"}
             </p>
             <div className="bg-white rounded-[20px] shadow-[0_4px_24px_rgba(26,24,20,0.04)] border border-[rgba(26,24,20,0.06)] overflow-hidden">
-              {variations.map((v, i) => (
+              {sortedVariations.map((v, i) => (
                 <VariationRow
                   key={v.id}
                   id={v.id}
