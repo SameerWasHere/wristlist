@@ -445,8 +445,19 @@ async function renderFamilyPage(family: {
   // Build a reference-id-to-ref map for showing which ref each collector owns
   const refMap = new Map(variations.map((v) => [v.id, v]));
 
-  // Hero image: prefer the most-collected variation's image, then family imageUrl
-  const heroImage = featured?.imageUrl || family.imageUrl || null;
+  // Hero image: the most-collected variation that has an image wins.
+  // Upload happens on individual variation pages, never on the family page
+  // itself — the family hero is always derived.
+  const variationsWithImage = variations.filter((v) => !!v.imageUrl);
+  const bestImageVariation =
+    variationsWithImage.length > 0
+      ? variationsWithImage.reduce((best, v) => {
+          const bc = collectorCounts.get(best.id) || 0;
+          const vc = collectorCounts.get(v.id) || 0;
+          return vc > bc ? v : best;
+        }, variationsWithImage[0])
+      : null;
+  const heroImage = bestImageVariation?.imageUrl || family.imageUrl || null;
 
   return (
     <div className="min-h-screen bg-[#f6f4ef]">
@@ -470,15 +481,9 @@ async function renderFamilyPage(family: {
                 </span>
               </div>
             )}
-            {isSignedIn && featured && (
-              <CatalogImageUpload
-                referenceId={featured.id}
-                currentImageUrl={heroImage}
-                brand={family.brand}
-                model={family.model}
-                size="hero"
-              />
-            )}
+            {/* No upload button here — the family hero mirrors the most-collected
+                variation that has an image. To add/update an image, open the
+                specific variation and use the upload on its hero. */}
           </div>
 
           {/* Text */}
