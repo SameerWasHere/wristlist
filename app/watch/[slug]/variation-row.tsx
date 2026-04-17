@@ -72,7 +72,7 @@ export function VariationRow({
           covering thumb+text (navigates to the variant page) and separate
           controls on the right (upload, expand toggle) rendered as siblings
           so we don't end up with nested interactive elements. */}
-      <div className="flex items-center gap-4 px-5 py-4 hover:bg-[rgba(26,24,20,0.015)] transition-colors">
+      <div className="flex items-start gap-4 px-5 py-4 hover:bg-[rgba(26,24,20,0.015)] transition-colors">
         {/* Thumb (includes upload overlay as sibling, not nested inside link) */}
         <div className="relative flex-shrink-0">
           <Link
@@ -108,20 +108,40 @@ export function VariationRow({
               <span className="text-[11px] text-[rgba(26,24,20,0.35)] flex-shrink-0">👥</span>
             )}
           </div>
-          {/* Clear description of what makes this variation unique */}
-          <p className="text-[12px] text-[rgba(26,24,20,0.5)] leading-snug line-clamp-2 sm:line-clamp-1">
-            {[
-              color ? `${color.charAt(0).toUpperCase() + color.slice(1)} dial` : null,
-              material,
-              sizeMm ? `${sizeMm}mm` : null,
-              braceletType,
-            ].filter(Boolean).join(" · ")}
-          </p>
-          <p className="text-[10px] text-[rgba(26,24,20,0.3)] leading-snug line-clamp-2 sm:line-clamp-1 mt-0.5">
-            {[movement, origin, crystal].filter(Boolean).join(" · ")}
-          </p>
+          {/* All 12 editable specs in a compact 3-column grid */}
+          {(() => {
+            const quickSpecs = [
+              { label: "Movement", value: movement },
+              { label: "Size", value: sizeMm ? `${sizeMm}mm` : null },
+              { label: "Category", value: category },
+              { label: "Dial", value: color },
+              { label: "Material", value: material },
+              { label: "Bracelet", value: braceletType },
+              { label: "Bezel", value: bezelType },
+              { label: "Shape", value: shape },
+              { label: "Origin", value: origin },
+              { label: "Crystal", value: crystal },
+              { label: "Water Res.", value: waterResistanceM ? `${waterResistanceM}m` : null },
+              { label: "Case Back", value: caseBack },
+            ].filter((s) => s.value);
+            if (quickSpecs.length === 0) return null;
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 mt-2">
+                {quickSpecs.map((s) => (
+                  <div key={s.label} className="min-w-0">
+                    <p className="text-[9px] uppercase tracking-[1.2px] text-[rgba(26,24,20,0.25)] font-medium leading-tight">
+                      {s.label}
+                    </p>
+                    <p className="text-[12px] text-[#1a1814] truncate capitalize leading-snug">
+                      {s.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           {description && (
-            <p className="text-[12px] font-serif italic text-[rgba(26,24,20,0.55)] leading-snug mt-1.5 line-clamp-2">
+            <p className="text-[12px] font-serif italic text-[rgba(26,24,20,0.55)] leading-snug mt-2.5 line-clamp-2">
               {description}
             </p>
           )}
