@@ -104,7 +104,7 @@ export function VariationRow({
             )}
           </div>
           {/* Clear description of what makes this variation unique */}
-          <p className="text-[12px] text-[rgba(26,24,20,0.5)] truncate">
+          <p className="text-[12px] text-[rgba(26,24,20,0.5)] leading-snug line-clamp-2 sm:line-clamp-1">
             {[
               color ? `${color.charAt(0).toUpperCase() + color.slice(1)} dial` : null,
               material,
@@ -112,7 +112,7 @@ export function VariationRow({
               braceletType,
             ].filter(Boolean).join(" · ")}
           </p>
-          <p className="text-[10px] text-[rgba(26,24,20,0.3)] truncate mt-0.5">
+          <p className="text-[10px] text-[rgba(26,24,20,0.3)] leading-snug line-clamp-2 sm:line-clamp-1 mt-0.5">
             {[movement, origin, crystal].filter(Boolean).join(" · ")}
           </p>
         </div>

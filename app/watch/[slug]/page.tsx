@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { getDb, schema } from "@/lib/db";
+import { getBestVariantImagesForFamilies, effectiveFamilyImage } from "@/lib/family-image";
 import { eq, sql, and, ne, inArray } from "drizzle-orm";
 import { FamilyEditButton, ReferenceEditButton, HistoryButton } from "./community-features";
 import { AddVariationButton } from "./add-variation-button";
@@ -401,7 +402,7 @@ async function renderFamilyPage(family: {
   const variations = await getVariationsForFamily(family.id);
   const variationIds = variations.map((v) => v.id);
 
-  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamilies, collectionSiblings, creator] =
+  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamiliesRaw, collectionSiblingsRaw, creator] =
     await Promise.all([
       getCollectorCountsPerVariation(variationIds),
       getWishlistCountsPerVariation(variationIds),
@@ -411,6 +412,21 @@ async function renderFamilyPage(family: {
       getCollectionSiblings(family.brand, collectionName, family.id),
       getFamilyCreator(family.createdBy),
     ]);
+
+  // Fill in missing family images from the most-collected variant with an image
+  const missingImageFamilyIds = [
+    ...relatedFamiliesRaw.filter((f) => !f.imageUrl).map((f) => f.id),
+    ...collectionSiblingsRaw.filter((f) => !f.imageUrl).map((f) => f.id),
+  ];
+  const bestVariantImages = await getBestVariantImagesForFamilies(missingImageFamilyIds);
+  const relatedFamilies = relatedFamiliesRaw.map((f) => ({
+    ...f,
+    imageUrl: effectiveFamilyImage(f.imageUrl, f.id, bestVariantImages),
+  }));
+  const collectionSiblings = collectionSiblingsRaw.map((f) => ({
+    ...f,
+    imageUrl: effectiveFamilyImage(f.imageUrl, f.id, bestVariantImages),
+  }));
 
   // Total counts across all variations
   let totalOwners = 0;
@@ -496,7 +512,7 @@ async function renderFamilyPage(family: {
               {family.updatedAt && (
                 <> &middot; Last updated {timeAgo(family.updatedAt)}</>
               )}
-              {" &middot; "}
+              <> &middot; </>
               <HistoryButton targetType="family" targetId={family.id} />
             </p>
 

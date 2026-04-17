@@ -155,25 +155,25 @@ export function EditFamilyModal({
             </div>
           </div>
 
-          <div className="flex gap-3 mt-6">
-            {/* Community warning */}
-            <div className="w-full mb-3 px-3 py-2.5 bg-[rgba(138,122,90,0.06)] border border-[rgba(138,122,90,0.12)] rounded-[10px]">
-              <p className="text-[11px] text-[rgba(26,24,20,0.5)] leading-relaxed">
-                <strong className="text-[#8a7a5a] font-semibold">Community edit.</strong>{" "}
-                Your changes will be visible to all WristList users. Please ensure accuracy — editing privileges may be revoked for inaccurate or abusive edits.
-              </p>
-            </div>
+          {/* Community warning */}
+          <div className="mt-6 px-3 py-2.5 bg-[rgba(138,122,90,0.06)] border border-[rgba(138,122,90,0.12)] rounded-[10px]">
+            <p className="text-[11px] text-[rgba(26,24,20,0.5)] leading-relaxed">
+              <strong className="text-[#8a7a5a] font-semibold">Community edit.</strong>{" "}
+              Your changes will be visible to all WristList users. Please ensure accuracy — editing privileges may be revoked for inaccurate or abusive edits.
+            </p>
+          </div>
 
+          <div className="flex gap-3 mt-4">
             <button
               onClick={onClose}
-              className="flex-1 text-[14px] font-medium py-3 rounded-full border border-[rgba(26,24,20,0.1)] text-[rgba(26,24,20,0.5)] hover:bg-white transition-colors"
+              className="flex-1 text-[14px] font-medium py-3 rounded-full border border-[rgba(26,24,20,0.1)] text-[rgba(26,24,20,0.5)] hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#8a7a5a]/30 focus:ring-offset-2 focus:ring-offset-[#f6f4ef] whitespace-nowrap"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 text-[14px] font-semibold py-3 rounded-full bg-[#8a7a5a] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex-1 text-[14px] font-semibold py-3 rounded-full bg-[#8a7a5a] text-white hover:opacity-90 transition-opacity disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#8a7a5a]/40 focus:ring-offset-2 focus:ring-offset-[#f6f4ef] whitespace-nowrap"
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>

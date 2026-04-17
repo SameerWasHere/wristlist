@@ -34,23 +34,31 @@ export function VariationPicker({
 }: VariationPickerProps) {
   const [variations, setVariations] = useState<Variation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/watches/variations?familyId=${familyId}`);
+      if (!res.ok) {
+        setError("Couldn't load variations. Please try again.");
+        setVariations([]);
+      } else {
+        const data = await res.json();
+        setVariations(data.variations ?? []);
+      }
+    } catch {
+      setError("Couldn't load variations. Please check your connection.");
+      setVariations([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/watches/variations?familyId=${familyId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setVariations(data.variations ?? []);
-        }
-      } catch {
-        // silently fail
-      } finally {
-        setLoading(false);
-      }
-    }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
 
   return (
@@ -78,6 +86,31 @@ export function VariationPicker({
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="w-5 h-5 border-2 border-[rgba(26,24,20,0.1)] border-t-[#8a7a5a] rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* Error state */}
+      {!loading && error && (
+        <div className="bg-white border border-[rgba(220,38,38,0.15)] rounded-[14px] px-4 py-5 text-center mb-4">
+          <p className="text-[13px] text-[rgba(26,24,20,0.6)] mb-3">{error}</p>
+          <button
+            onClick={load}
+            className="text-[12px] font-semibold text-[#8a7a5a] hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && variations.length === 0 && (
+        <div className="bg-white border border-dashed border-[rgba(26,24,20,0.1)] rounded-[14px] px-4 py-6 text-center mb-4">
+          <p className="text-[13px] text-[rgba(26,24,20,0.5)] mb-1">
+            No variations catalogued yet.
+          </p>
+          <p className="text-[12px] text-[rgba(26,24,20,0.35)]">
+            Add yours below — it will help other collectors too.
+          </p>
         </div>
       )}
 

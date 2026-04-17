@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface SettingsFormProps {
@@ -25,6 +25,15 @@ export function SettingsForm({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const router = useRouter();
+
+  // Auto-dismiss success toast after 2.5s (errors stick until user retries)
+  useEffect(() => {
+    if (message?.type !== "success") return;
+    const t = setTimeout(() => setMessage(null), 2500);
+    return () => clearTimeout(t);
+  }, [message]);
+
+  const showUsernameError = username.length > 0 && username.length < 3;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +98,11 @@ export function SettingsForm({
         <p className="text-[11px] text-[rgba(26,24,20,0.25)] mt-1">
           Letters, numbers, hyphens, underscores. This is your public profile URL.
         </p>
+        {showUsernameError && (
+          <p className="text-[11px] text-[#DC2626] mt-1 font-medium">
+            Username must be at least 3 characters
+          </p>
+        )}
       </div>
 
       {/* Display Name */}
@@ -137,9 +151,9 @@ export function SettingsForm({
         />
       </div>
 
-      {/* Message */}
-      {message && (
-        <p className={`text-[13px] font-medium ${message.type === "success" ? "text-[#059669]" : "text-red-500"}`}>
+      {/* Inline error message (stays until user retries) */}
+      {message?.type === "error" && (
+        <p className="text-[13px] font-medium text-[#DC2626]">
           {message.text}
         </p>
       )}
@@ -152,6 +166,16 @@ export function SettingsForm({
       >
         {saving ? "Saving..." : "Save Changes"}
       </button>
+
+      {/* Success toast (fixed top-right, auto-dismisses) */}
+      {message?.type === "success" && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-[#f6f4ef] border-l-[3px] border-[#8a7a5a] rounded-[10px] shadow-[0_8px_32px_rgba(26,24,20,0.12)] animate-in slide-in-from-top-2 fade-in duration-200">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#8a7a5a] flex-shrink-0">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <p className="text-[13px] font-semibold text-[#1a1814]">{message.text}</p>
+        </div>
+      )}
     </form>
   );
 }

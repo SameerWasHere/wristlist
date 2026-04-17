@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { CatalogGrid } from "./catalog-grid";
 import type { CatalogFamily } from "./catalog-grid";
 import { AddWatchCta } from "./add-watch-cta";
+import { getBestVariantImagesForFamilies, effectiveFamilyImage } from "@/lib/family-image";
 import Link from "next/link";
 
 function timeAgo(date: Date | null): string {
@@ -86,8 +87,20 @@ async function getCatalogFamilies(): Promise<CatalogFamily[]> {
         ),
       );
 
+    // Fetch best variant images for families that have no direct imageUrl,
+    // so the grid shows a real watch photo instead of a letter placeholder.
+    const familyIdsNeedingFallback = rows
+      .filter((r) => !r.imageUrl)
+      .map((r) => r.id as number);
+    const bestVariantImages = await getBestVariantImagesForFamilies(familyIdsNeedingFallback);
+
     return rows.map((r) => ({
       ...r,
+      imageUrl: effectiveFamilyImage(
+        (r.imageUrl as string | null) ?? null,
+        r.id as number,
+        bestVariantImages,
+      ),
       collection: collectionExists ? (r as Record<string, unknown>).collection as string | null ?? null : null,
     })) as CatalogFamily[];
   } catch {

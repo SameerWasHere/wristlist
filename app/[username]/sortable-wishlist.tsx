@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -203,7 +203,15 @@ export function SortableWishlist({
 }) {
   const [wishlist, setWishlist] = useState(items);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Auto-clear the error toast after 3 seconds
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 3000);
+    return () => clearTimeout(t);
+  }, [error]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -222,22 +230,29 @@ export function SortableWishlist({
       const oldIndex = wishlist.findIndex((w) => w.userWatchId === active.id);
       const newIndex = wishlist.findIndex((w) => w.userWatchId === over.id);
       const newOrder = arrayMove(wishlist, oldIndex, newIndex);
+      const previousOrder = wishlist;
 
       setWishlist(newOrder);
       setSaving(true);
+      setError(null);
 
       try {
-        await fetch("/api/wishlist/reorder", {
+        const res = await fetch("/api/wishlist/reorder", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderedIds: newOrder.map((w) => w.userWatchId),
           }),
         });
-        router.refresh();
+        if (!res.ok) {
+          setWishlist(previousOrder);
+          setError("Couldn't save order — try again");
+        } else {
+          router.refresh();
+        }
       } catch {
-        // Revert on error
-        setWishlist(wishlist);
+        setWishlist(previousOrder);
+        setError("Couldn't save order — check your connection");
       } finally {
         setSaving(false);
       }
@@ -258,10 +273,20 @@ export function SortableWishlist({
 
   return (
     <div>
-      {saving && (
+      {saving && !error && (
         <p className="text-[11px] text-[#8a7a5a] mb-2 animate-pulse">
           Saving order...
         </p>
+      )}
+      {error && (
+        <div className="mb-3 px-3 py-2 bg-[rgba(220,38,38,0.06)] border border-[rgba(220,38,38,0.15)] rounded-[10px] flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#DC2626] flex-shrink-0">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <p className="text-[12px] font-medium text-[#DC2626]">{error}</p>
+        </div>
       )}
       <DndContext
         sensors={sensors}

@@ -112,6 +112,15 @@ export async function GET(request: NextRequest) {
             ...f,
             variationCount: countMap.get(f.id) || 0,
           }));
+
+          // Fill in variant image for families missing a direct imageUrl
+          const { getBestVariantImagesForFamilies, effectiveFamilyImage } = await import("@/lib/family-image");
+          const missingIds = families.filter((f) => !f.imageUrl).map((f) => f.id);
+          const bestImgs = await getBestVariantImagesForFamilies(missingIds);
+          families = families.map((f) => ({
+            ...f,
+            imageUrl: effectiveFamilyImage(f.imageUrl, f.id, bestImgs),
+          }));
         }
       } catch {
         // watchFamilies table may not exist yet
@@ -190,6 +199,15 @@ export async function GET(request: NextRequest) {
         families = familyRows.map((f) => ({
           ...f,
           variationCount: countMap.get(f.id) || 0,
+        }));
+
+        // Fill in variant image for families missing a direct imageUrl
+        const { getBestVariantImagesForFamilies, effectiveFamilyImage } = await import("@/lib/family-image");
+        const missingIds = families.filter((f) => !f.imageUrl).map((f) => f.id);
+        const bestImgs = await getBestVariantImagesForFamilies(missingIds);
+        families = families.map((f) => ({
+          ...f,
+          imageUrl: effectiveFamilyImage(f.imageUrl, f.id, bestImgs),
         }));
       }
     } catch {
