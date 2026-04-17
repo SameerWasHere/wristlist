@@ -816,16 +816,24 @@ async function renderLegacyPage(watch: {
   const { userId: viewerClerkId } = await auth();
   const isSignedIn = !!viewerClerkId;
 
+  const retailPrice = (watch.retailPrice as number | null | undefined) ?? null;
+  const bezelType = (watch.bezelType as string | null | undefined) ?? null;
+  const complications = (watch.complications as string[] | null | undefined) ?? null;
+
   const specs = [
     { label: "Movement", value: watch.movement },
     { label: "Size", value: watch.sizeMm ? `${watch.sizeMm}mm` : null },
     { label: "Category", value: watch.category },
+    { label: "Dial", value: watch.color },
+    { label: "Material", value: watch.material },
+    { label: "Bracelet", value: watch.braceletType },
+    { label: "Bezel", value: bezelType },
+    { label: "Shape", value: watch.shape },
     { label: "Origin", value: watch.origin },
     { label: "Crystal", value: watch.crystal },
-    { label: "Bracelet", value: watch.braceletType },
     { label: "Water Resistance", value: watch.waterResistanceM ? `${watch.waterResistanceM}m` : null },
-    { label: "Material", value: watch.material },
     { label: "Case Back", value: watch.caseBack },
+    { label: "Retail Price", value: retailPrice && retailPrice > 0 ? `$${retailPrice.toLocaleString()}` : null },
   ].filter((s) => s.value);
 
   return (
@@ -940,12 +948,38 @@ async function renderLegacyPage(watch: {
                     <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.3)] mb-0.5">
                       {spec.label}
                     </p>
-                    <p className="text-[14px] font-medium text-[#1a1814]">
+                    <p className="text-[14px] font-medium text-[#1a1814] capitalize">
                       {spec.value}
                     </p>
                   </div>
                 ))}
               </div>
+            )}
+
+            {/* Complications */}
+            {complications && complications.length > 0 && (
+              <div className="mt-5">
+                <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.3)] mb-2">
+                  Complications
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {complications.map((c) => (
+                    <span
+                      key={c}
+                      className="px-2.5 py-1 text-[11px] font-medium rounded-full bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.55)] capitalize"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            {watch.description && (
+              <p className="mt-5 text-[14px] leading-relaxed text-[rgba(26,24,20,0.55)] font-serif italic">
+                {watch.description}
+              </p>
             )}
           </div>
         </div>
