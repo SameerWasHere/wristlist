@@ -24,6 +24,14 @@ interface SearchResult {
   isCommunitySubmitted?: boolean;
 }
 
+interface MatchedVariant {
+  id: number;
+  slug: string;
+  reference: string;
+  variantName: string | null;
+  imageUrl: string | null;
+}
+
 interface FamilyResult {
   id: number;
   slug: string;
@@ -31,6 +39,9 @@ interface FamilyResult {
   model: string;
   imageUrl: string | null;
   variationCount: number;
+  collectorCount?: number;
+  matchedBy?: "brand" | "model" | "reference" | "variantName" | "description";
+  matchedVariant?: MatchedVariant | null;
 }
 
 interface WatchSearchProps {

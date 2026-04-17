@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 
 export interface CatalogFamily {
@@ -55,23 +55,96 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
   const [activeTier, setActiveTier] = useState<PriceTierDef | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // When the user is actively searching, hit the unified API so refs,
+  // nicknames, and descriptions all match — not just brand/model. Results
+  // come back ranked by relevance with the matched variation attached.
+  const [searchMatchedIds, setSearchMatchedIds] = useState<Set<number> | null>(null);
+  const [matchedOrder, setMatchedOrder] = useState<number[]>([]);
+  const [matchedVariantByFamily, setMatchedVariantByFamily] = useState<
+    Map<number, { reference: string; variantName: string | null; imageUrl: string | null }>
+  >(new Map());
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
+      setSearchMatchedIds(null);
+      setMatchedOrder([]);
+      setMatchedVariantByFamily(new Map());
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/watches/search?q=${encodeURIComponent(trimmed)}`);
+        if (!res.ok) throw new Error("search failed");
+        const data = await res.json();
+        const famResults: Array<{
+          id: number;
+          matchedBy?: string;
+          matchedVariant?: { reference: string; variantName: string | null; imageUrl: string | null } | null;
+        }> = data.families ?? [];
+        const ids = new Set(famResults.map((f) => f.id));
+        const order = famResults.map((f) => f.id);
+        const variantMap = new Map<
+          number,
+          { reference: string; variantName: string | null; imageUrl: string | null }
+        >();
+        for (const f of famResults) {
+          if (
+            f.matchedVariant &&
+            (f.matchedBy === "reference" || f.matchedBy === "variantName")
+          ) {
+            variantMap.set(f.id, f.matchedVariant);
+          }
+        }
+        setSearchMatchedIds(ids);
+        setMatchedOrder(order);
+        setMatchedVariantByFamily(variantMap);
+      } catch {
+        // Fall back to local-only filtering on error
+        setSearchMatchedIds(null);
+        setMatchedOrder([]);
+        setMatchedVariantByFamily(new Map());
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 200);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchQuery]);
+
   // Extract unique brands sorted alphabetically
   const brands = useMemo(() => {
     const set = new Set(families.map((f) => f.brand));
     return Array.from(set).sort();
   }, [families]);
 
-  const filtered = families.filter((f) => {
-    if (activeCategory !== "All" && f.topCategory?.toLowerCase() !== activeCategory.toLowerCase()) return false;
-    if (activeOrigin && f.topOrigin?.toLowerCase() !== activeOrigin.toLowerCase()) return false;
-    if (activeBrand && f.brand !== activeBrand) return false;
-    if (!matchesTier(f.avgPrice, activeTier)) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!f.brand.toLowerCase().includes(q) && !f.model.toLowerCase().includes(q)) return false;
+  const filtered = useMemo(() => {
+    // Step 1: pure filter (category / origin / brand / price tier)
+    const byFilters = families.filter((f) => {
+      if (activeCategory !== "All" && f.topCategory?.toLowerCase() !== activeCategory.toLowerCase()) return false;
+      if (activeOrigin && f.topOrigin?.toLowerCase() !== activeOrigin.toLowerCase()) return false;
+      if (activeBrand && f.brand !== activeBrand) return false;
+      if (!matchesTier(f.avgPrice, activeTier)) return false;
+      return true;
+    });
+
+    // Step 2: no query → return all filtered families
+    if (!searchMatchedIds) {
+      return byFilters;
     }
-    return true;
-  });
+
+    // Step 3: with query, keep only families in the API result set and
+    // preserve the API's relevance order.
+    const inSearch = byFilters.filter((f) => searchMatchedIds.has(f.id));
+    inSearch.sort((a, b) => matchedOrder.indexOf(a.id) - matchedOrder.indexOf(b.id));
+    return inSearch;
+  }, [families, activeCategory, activeOrigin, activeBrand, activeTier, searchMatchedIds, matchedOrder]);
 
   const activeFilterCount = [
     activeCategory !== "All" ? 1 : 0,
@@ -256,7 +329,11 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
         /* Grid view */
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
           {filtered.map((f) => (
-            <FamilyCard key={f.id} family={f} />
+            <FamilyCard
+              key={f.id}
+              family={f}
+              matchedVariant={matchedVariantByFamily.get(f.id) ?? null}
+            />
           ))}
         </div>
       )}
@@ -264,7 +341,13 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
   );
 }
 
-function FamilyCard({ family: f }: { family: CatalogFamily }) {
+function FamilyCard({
+  family: f,
+  matchedVariant,
+}: {
+  family: CatalogFamily;
+  matchedVariant?: { reference: string; variantName: string | null; imageUrl: string | null } | null;
+}) {
   const initial = f.brand.charAt(0);
   const tierLabel = f.avgPrice
     ? f.avgPrice < 500 ? "Entry" : f.avgPrice < 2000 ? "Mid" : f.avgPrice < 5000 ? "Premium" : f.avgPrice < 10000 ? "Luxury" : "Ultra"
@@ -275,14 +358,15 @@ function FamilyCard({ family: f }: { family: CatalogFamily }) {
       href={`/watch/${f.slug}`}
       className="bg-white rounded-[16px] overflow-hidden hover:-translate-y-[2px] hover:shadow-[0_8px_32px_rgba(26,24,20,0.1)] transition-all duration-300 no-underline text-inherit group border border-[rgba(26,24,20,0.04)]"
     >
-      {/* Image */}
+      {/* Image — prefer the matched variant's image when the search matched
+          a specific ref or nickname, so "Batman" surfaces the Batman dial. */}
       <div
         className="relative w-full aspect-[4/3] overflow-hidden"
         style={{ background: colorGradients.default }}
       >
-        {f.imageUrl ? (
+        {(matchedVariant?.imageUrl || f.imageUrl) ? (
           <img
-            src={f.imageUrl}
+            src={matchedVariant?.imageUrl || f.imageUrl!}
             alt={`${f.brand} ${f.model}`}
             className="w-full h-full object-contain p-5 group-hover:scale-105 transition-transform duration-500"
           />
@@ -298,6 +382,13 @@ function FamilyCard({ family: f }: { family: CatalogFamily }) {
             {tierLabel}
           </span>
         )}
+
+        {/* Match badge — shows why this card appeared when search matched a ref/nickname */}
+        {matchedVariant?.variantName && (
+          <span className="absolute bottom-3 left-3 text-[10px] font-serif italic font-medium px-2 py-0.5 rounded-full bg-[#8a7a5a]/95 text-white">
+            &ldquo;{matchedVariant.variantName}&rdquo;
+          </span>
+        )}
       </div>
 
       {/* Info */}
@@ -308,6 +399,11 @@ function FamilyCard({ family: f }: { family: CatalogFamily }) {
         <p className="text-[14px] font-bold text-foreground tracking-tight mt-0.5 truncate">
           {f.model}
         </p>
+        {matchedVariant && (
+          <p className="text-[10px] font-mono text-[rgba(26,24,20,0.35)] truncate mt-0.5">
+            {matchedVariant.reference}
+          </p>
+        )}
         <div className="flex items-center gap-2 mt-2">
           {f.topCategory && (
             <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-[rgba(26,24,20,0.04)] text-[rgba(26,24,20,0.4)]">

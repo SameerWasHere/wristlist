@@ -10,7 +10,16 @@ interface SearchResult {
   brand: string;
   model: string;
   reference?: string;
+  variantName?: string | null;
   imageUrl?: string | null;
+}
+
+interface MatchedVariant {
+  id: number;
+  slug: string;
+  reference: string;
+  variantName: string | null;
+  imageUrl: string | null;
 }
 
 interface FamilyResult {
@@ -19,6 +28,9 @@ interface FamilyResult {
   model: string;
   imageUrl?: string | null;
   variationCount?: number;
+  collectorCount?: number;
+  matchedBy?: "brand" | "model" | "reference" | "variantName" | "description";
+  matchedVariant?: MatchedVariant | null;
 }
 
 export function HeroSearch() {
@@ -35,7 +47,8 @@ export function HeroSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const search = useCallback(async (q: string) => {
-    if (q.length < 2) {
+    const trimmed = q.trim();
+    if (trimmed.length < 2) {
       setResults([]);
       setFamilies([]);
       setOpen(false);
@@ -43,7 +56,7 @@ export function HeroSearch() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/watches/search?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/watches/search?q=${encodeURIComponent(trimmed)}`);
       if (res.ok) {
         const data = await res.json();
         setFamilies(data.families || []);
@@ -60,7 +73,7 @@ export function HeroSearch() {
   const handleInput = (val: string) => {
     setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(val), 250);
+    debounceRef.current = setTimeout(() => search(val), 200);
   };
 
   const navigate = (slug: string) => {
@@ -78,8 +91,9 @@ export function HeroSearch() {
     setCatalogOpen(true);
   }
 
-  // Parse query into brand/model for pre-filling the catalog modal
-  const queryParts = query.trim().split(/\s+/);
+  // Parse query into brand/model for pre-filling the catalog modal.
+  // Handles extra whitespace inside the query ("rolex  gmt").
+  const queryParts = query.trim().split(/\s+/).filter(Boolean);
   const initialBrand = queryParts[0] || "";
   const initialModel = queryParts.slice(1).join(" ") || "";
 
@@ -132,31 +146,53 @@ export function HeroSearch() {
         {/* Dropdown with results */}
         {open && hasResults && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[16px] border border-[rgba(26,24,20,0.08)] shadow-[0_8px_40px_rgba(26,24,20,0.12)] overflow-hidden z-50 max-h-[400px] overflow-y-auto">
-            {/* Families */}
-            {families.map((f) => (
-              <button
-                key={`family-${f.slug}`}
-                onClick={() => navigate(f.slug)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[rgba(26,24,20,0.02)] transition-colors text-left border-b border-[rgba(26,24,20,0.04)]"
-              >
-                <div className="w-10 h-10 rounded-[8px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {f.imageUrl ? (
-                    <img src={f.imageUrl} alt="" className="w-full h-full object-contain p-1" />
-                  ) : (
-                    <span className="text-white/20 text-[14px] font-bold">{f.brand.charAt(0)}</span>
+            {/* Families — with matched variant context when relevant */}
+            {families.map((f) => {
+              // When the match came via a specific ref or nickname, surface
+              // it so the user sees why this family showed up.
+              const mv = f.matchedVariant;
+              const showMatchedVariant =
+                (f.matchedBy === "reference" || f.matchedBy === "variantName") && mv;
+              // Prefer the matched variant's image when it has one, so typing
+              // "Batman" surfaces the Batman thumb on the Rolex GMT row.
+              const thumb = mv?.imageUrl || f.imageUrl;
+              return (
+                <button
+                  key={`family-${f.slug}-${mv?.id ?? "main"}`}
+                  onClick={() => navigate(f.slug)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[rgba(26,24,20,0.02)] transition-colors text-left border-b border-[rgba(26,24,20,0.04)]"
+                >
+                  <div className="w-10 h-10 rounded-[8px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {thumb ? (
+                      <img src={thumb} alt="" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <span className="text-white/20 text-[14px] font-bold">{f.brand.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.35)] font-medium">{f.brand}</p>
+                    <p className="text-[14px] font-semibold text-[#1a1814] truncate">
+                      {f.model}
+                      {showMatchedVariant && mv?.variantName && (
+                        <span className="ml-2 font-serif italic font-medium text-[#8a7a5a]">
+                          &ldquo;{mv.variantName}&rdquo;
+                        </span>
+                      )}
+                    </p>
+                    {showMatchedVariant && mv?.reference && (
+                      <p className="text-[11px] font-mono text-[rgba(26,24,20,0.35)] truncate">
+                        {mv.reference}
+                      </p>
+                    )}
+                  </div>
+                  {!showMatchedVariant && f.variationCount && f.variationCount > 1 && (
+                    <span className="text-[11px] text-[rgba(26,24,20,0.3)] flex-shrink-0">
+                      {f.variationCount} variations
+                    </span>
                   )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.35)] font-medium">{f.brand}</p>
-                  <p className="text-[14px] font-semibold text-[#1a1814] truncate">{f.model}</p>
-                </div>
-                {f.variationCount && f.variationCount > 1 && (
-                  <span className="text-[11px] text-[rgba(26,24,20,0.3)] flex-shrink-0">
-                    {f.variationCount} variations
-                  </span>
-                )}
-              </button>
-            ))}
+                </button>
+              );
+            })}
 
             {/* Individual references (if no family match) */}
             {results.filter(r => !families.some(f => f.brand === r.brand && f.model === r.model)).slice(0, 5).map((r) => (
@@ -200,7 +236,7 @@ export function HeroSearch() {
         )}
 
         {/* No results — with prominent CTA to add */}
-        {open && !hasResults && query.length >= 2 && !loading && (
+        {open && !hasResults && query.trim().length >= 2 && !loading && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[16px] border border-[rgba(26,24,20,0.08)] shadow-[0_8px_40px_rgba(26,24,20,0.12)] p-6 z-50">
             <div className="text-center">
               <p className="text-[14px] text-[rgba(26,24,20,0.5)] mb-1">
