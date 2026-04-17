@@ -9,8 +9,6 @@ interface EditFamilyModalProps {
   familyId: number;
   currentModel: string;
   currentDescription: string | null;
-  currentImageUrl: string | null;
-  currentCollection: string | null;
 }
 
 export function EditFamilyModal({
@@ -19,15 +17,11 @@ export function EditFamilyModal({
   familyId,
   currentModel,
   currentDescription,
-  currentImageUrl,
-  currentCollection,
 }: EditFamilyModalProps) {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [model, setModel] = useState(currentModel);
   const [description, setDescription] = useState(currentDescription || "");
-  const [imageUrl, setImageUrl] = useState(currentImageUrl || "");
-  const [collection, setCollection] = useState(currentCollection || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,8 +50,6 @@ export function EditFamilyModal({
         body: JSON.stringify({
           model: model.trim() || currentModel,
           description: description.trim() || null,
-          imageUrl: imageUrl.trim() || null,
-          collection: collection.trim() || null,
         }),
       });
 
@@ -119,19 +111,6 @@ export function EditFamilyModal({
 
             <div>
               <label className="text-[11px] uppercase tracking-[2px] text-[rgba(26,24,20,0.4)] font-medium block mb-1">
-                Collection
-              </label>
-              <input
-                type="text"
-                value={collection}
-                onChange={(e) => setCollection(e.target.value)}
-                placeholder="e.g. Submariner, Speedmaster"
-                className="w-full text-[16px] px-4 py-3 rounded-[12px] border border-[rgba(26,24,20,0.1)] bg-white focus:outline-none focus:border-[#8a7a5a]"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] uppercase tracking-[2px] text-[rgba(26,24,20,0.4)] font-medium block mb-1">
                 Description
               </label>
               <textarea
@@ -142,17 +121,6 @@ export function EditFamilyModal({
               />
             </div>
 
-            <div>
-              <label className="text-[11px] uppercase tracking-[2px] text-[rgba(26,24,20,0.4)] font-medium block mb-1">
-                Image URL
-              </label>
-              <input
-                type="text"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full text-[16px] px-4 py-3 rounded-[12px] border border-[rgba(26,24,20,0.1)] bg-white focus:outline-none focus:border-[#8a7a5a]"
-              />
-            </div>
           </div>
 
           {/* Community warning */}

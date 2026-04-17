@@ -8,7 +8,6 @@ export interface CatalogFamily {
   slug: string;
   brand: string;
   model: string;
-  collection: string | null;
   imageUrl: string | null;
   variationCount: number;
   collectorCount: number;
@@ -49,21 +48,12 @@ const colorGradients: Record<string, string> = {
   default: "linear-gradient(155deg, #0a0a0a, #1a1a20)",
 };
 
-type ViewMode = "grid" | "collection";
-
 export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [activeOrigin, setActiveOrigin] = useState<string | null>(null);
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [activeTier, setActiveTier] = useState<PriceTierDef | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-
-  // Check if any family has a collection value
-  const hasCollections = useMemo(
-    () => families.some((f) => f.collection),
-    [families],
-  );
 
   // Extract unique brands sorted alphabetically
   const brands = useMemo(() => {
@@ -82,33 +72,6 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
     }
     return true;
   });
-
-  // Group filtered families by brand -> collection
-  const groupedByCollection = useMemo(() => {
-    if (viewMode !== "collection") return null;
-    const groups: Record<string, Record<string, CatalogFamily[]>> = {};
-    for (const f of filtered) {
-      const brandKey = f.brand;
-      const collectionKey = f.collection || "Other";
-      if (!groups[brandKey]) groups[brandKey] = {};
-      if (!groups[brandKey][collectionKey])
-        groups[brandKey][collectionKey] = [];
-      groups[brandKey][collectionKey].push(f);
-    }
-    // Sort brands alphabetically
-    const sorted: { brand: string; collections: { name: string; families: CatalogFamily[] }[] }[] = [];
-    for (const brand of Object.keys(groups).sort()) {
-      const collections = Object.entries(groups[brand])
-        .sort(([a], [b]) => {
-          if (a === "Other") return 1;
-          if (b === "Other") return -1;
-          return a.localeCompare(b);
-        })
-        .map(([name, fams]) => ({ name, families: fams }));
-      sorted.push({ brand, collections });
-    }
-    return sorted;
-  }, [filtered, viewMode]);
 
   const activeFilterCount = [
     activeCategory !== "All" ? 1 : 0,
@@ -274,37 +237,11 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
         </div>
       )}
 
-      {/* Results count + view toggle */}
+      {/* Results count */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-[12px] text-[rgba(26,24,20,0.3)]">
           {filtered.length} {filtered.length === 1 ? "watch" : "watches"}
         </p>
-
-        {/* View mode toggle - only show if collections exist */}
-        {hasCollections && (
-          <div className="flex items-center gap-1 bg-[rgba(26,24,20,0.04)] rounded-[8px] p-0.5">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium transition-colors ${
-                viewMode === "grid"
-                  ? "bg-white text-[#1a1814] shadow-sm"
-                  : "text-[rgba(26,24,20,0.4)] hover:text-[rgba(26,24,20,0.6)]"
-              }`}
-            >
-              Grid
-            </button>
-            <button
-              onClick={() => setViewMode("collection")}
-              className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium transition-colors ${
-                viewMode === "collection"
-                  ? "bg-white text-[#1a1814] shadow-sm"
-                  : "text-[rgba(26,24,20,0.4)] hover:text-[rgba(26,24,20,0.6)]"
-              }`}
-            >
-              By Collection
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Grid */}
@@ -315,38 +252,8 @@ export function CatalogGrid({ families }: { families: CatalogFamily[] }) {
             Try adjusting your filters or search.
           </p>
         </div>
-      ) : viewMode === "collection" && groupedByCollection ? (
-        /* Collection view */
-        <div className="space-y-10">
-          {groupedByCollection.map(({ brand, collections }) => (
-            <div key={brand}>
-              {/* Brand header */}
-              <div className="flex items-center gap-3 mb-5">
-                <h3 className="text-[20px] font-serif italic text-[#1a1814]">
-                  {brand}
-                </h3>
-                <div className="flex-1 h-[1px] bg-[rgba(26,24,20,0.06)]" />
-              </div>
-
-              {collections.map(({ name, families: collFamilies }) => (
-                <div key={`${brand}-${name}`} className="mb-6">
-                  {/* Collection sub-header */}
-                  <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[#8a7a5a] mb-3 px-1">
-                    {name === "Other" ? "Other Models" : `${name} Collection`}
-                  </p>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
-                    {collFamilies.map((f) => (
-                      <FamilyCard key={f.id} family={f} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
       ) : (
-        /* Default grid view */
+        /* Grid view */
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
           {filtered.map((f) => (
             <FamilyCard key={f.id} family={f} />

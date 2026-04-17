@@ -101,7 +101,6 @@ async function getCatalogFamilies(): Promise<CatalogFamily[]> {
         r.id as number,
         bestVariantImages,
       ),
-      collection: collectionExists ? (r as Record<string, unknown>).collection as string | null ?? null : null,
     })) as CatalogFamily[];
   } catch {
     return [];

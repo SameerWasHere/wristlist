@@ -13,6 +13,7 @@ interface EditReferenceModalProps {
     brand?: string | null;
     model?: string | null;
     reference: string;
+    variantName?: string | null;
     sizeMm: number | null;
     movement: string | null;
     material: string | null;
@@ -41,9 +42,12 @@ export function EditReferenceModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const [brand, setBrand] = useState(current.brand || "");
-  const [model, setModel] = useState(current.model || "");
+  // Brand and model come from the parent family and are shown as read-only
+  // context at the top of the modal. They're not editable here.
+  const brand = current.brand || "";
+  const model = current.model || "";
   const [reference, setReference] = useState(current.reference);
+  const [variantName, setVariantName] = useState(current.variantName || "");
   const [sizeMm, setSizeMm] = useState(current.sizeMm?.toString() || "");
   const [movement, setMovement] = useState(current.movement || "");
   const [material, setMaterial] = useState(current.material || "");
@@ -57,7 +61,6 @@ export function EditReferenceModal({
   const [caseBack, setCaseBack] = useState(current.caseBack || "");
   const [origin, setOrigin] = useState(current.origin || "");
   const [description, setDescription] = useState(current.description || "");
-  const [imageUrl, setImageUrl] = useState(current.imageUrl || "");
 
   useEffect(() => {
     if (open) {
@@ -82,9 +85,10 @@ export function EditReferenceModal({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          brand: brand.trim() || null,
-          model: model.trim() || null,
+          // brand/model are read-only here — only send if they were provided
+          // by the caller (keeps prior API behavior intact)
           reference: reference.trim(),
+          variantName: variantName.trim() || null,
           sizeMm: sizeMm ? parseFloat(sizeMm) : null,
           movement: movement.trim() || null,
           material: material.trim() || null,
@@ -98,7 +102,7 @@ export function EditReferenceModal({
           caseBack: caseBack.trim() || null,
           origin: origin.trim() || null,
           description: description.trim() || null,
-          imageUrl: imageUrl.trim() || null,
+          // imageUrl is not edited here — use the photo upload overlay on the hero
         }),
       });
 
@@ -119,12 +123,10 @@ export function EditReferenceModal({
   }
 
   const textFields = [
-    { label: "Brand", value: brand, set: setBrand },
-    { label: "Model", value: model, set: setModel },
     { label: "Reference", value: reference, set: setReference },
+    { label: "Variant Name (nickname)", value: variantName, set: setVariantName, placeholder: "e.g. Batman, Pepsi, Hulk" },
     { label: "Size (mm)", value: sizeMm, set: setSizeMm, type: "number" },
     { label: "Water Resistance (m)", value: waterResistanceM, set: setWaterResistanceM, type: "number" },
-    { label: "Image URL", value: imageUrl, set: setImageUrl },
   ];
 
   function capitalize(s: string) {
@@ -150,9 +152,21 @@ export function EditReferenceModal({
         </div>
 
         <div className="px-6 pb-8 overflow-y-auto flex-1">
-          <h2 className="text-[18px] font-bold text-[#1a1814] mb-6">
+          <h2 className="text-[18px] font-bold text-[#1a1814] mb-2">
             Edit Variation
           </h2>
+
+          {/* Read-only parent context — brand/model come from the parent family */}
+          {(brand || model) && (
+            <div className="mb-5 px-3 py-2 bg-[rgba(26,24,20,0.03)] rounded-[10px]">
+              <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.35)] font-medium mb-0.5">
+                Model (from parent)
+              </p>
+              <p className="text-[14px] font-semibold text-[#1a1814]">
+                {brand} {model}
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="text-[13px] text-red-600 mb-4">{error}</p>
@@ -161,7 +175,7 @@ export function EditReferenceModal({
           {/* Text fields */}
           <div className="grid grid-cols-2 gap-3 mb-5">
             {textFields.map((f) => (
-              <div key={f.label}>
+              <div key={f.label} className={f.label.includes("Variant") ? "col-span-2" : ""}>
                 <label className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.4)] font-medium block mb-1">
                   {f.label}
                 </label>
@@ -169,6 +183,7 @@ export function EditReferenceModal({
                   type={f.type || "text"}
                   value={f.value}
                   onChange={(e) => f.set(e.target.value)}
+                  placeholder={f.placeholder}
                   className="w-full text-[16px] px-3 py-2.5 rounded-[10px] border border-[rgba(26,24,20,0.1)] bg-white focus:outline-none focus:border-[#8a7a5a]"
                 />
               </div>

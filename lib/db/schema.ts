@@ -46,6 +46,11 @@ export const watchReferences = pgTable(
     brand: text("brand").notNull(),
     model: text("model").notNull(),
     reference: text("reference").notNull(),
+    /**
+     * Optional nickname / community name — "Batman", "Pepsi", "Kermit", etc.
+     * Shown next to the reference on the family page.
+     */
+    variantName: text("variant_name"),
     sizeMm: real("size_mm"),
     movement: text("movement"),
     material: text("material"),

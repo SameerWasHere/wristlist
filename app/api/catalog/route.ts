@@ -51,7 +51,14 @@ export async function GET(request: NextRequest) {
   if (refParam && brandParam) {
     try {
       const [existing] = await db
-        .select({ id: schema.watchReferences.id })
+        .select({
+          id: schema.watchReferences.id,
+          slug: schema.watchReferences.slug,
+          brand: schema.watchReferences.brand,
+          model: schema.watchReferences.model,
+          reference: schema.watchReferences.reference,
+          imageUrl: schema.watchReferences.imageUrl,
+        })
         .from(schema.watchReferences)
         .where(
           and(
@@ -65,6 +72,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           exists: true,
           watchReferenceId: existing.id,
+          slug: existing.slug,
+          brand: existing.brand,
+          model: existing.model,
+          reference: existing.reference,
+          imageUrl: existing.imageUrl,
         });
       }
       return NextResponse.json({ exists: false });

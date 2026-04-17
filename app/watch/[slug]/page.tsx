@@ -396,36 +396,23 @@ async function renderFamilyPage(family: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }, isSignedIn: boolean = false) {
-  // Safely read collection field
-  const collectionName: string | null = hasCollectionField()
-    ? (family as Record<string, unknown>).collection as string | null ?? null
-    : null;
-
   const variations = await getVariationsForFamily(family.id);
   const variationIds = variations.map((v) => v.id);
 
-  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamiliesRaw, collectionSiblingsRaw, creator] =
+  const [collectorCounts, wishlistCounts, collectors, wishlisters, relatedFamiliesRaw, creator] =
     await Promise.all([
       getCollectorCountsPerVariation(variationIds),
       getWishlistCountsPerVariation(variationIds),
       getCollectorsForVariations(variationIds),
       getWishlistersForVariations(variationIds),
       getRelatedFamilies(family.brand, family.id),
-      getCollectionSiblings(family.brand, collectionName, family.id),
       getFamilyCreator(family.createdBy),
     ]);
 
   // Fill in missing family images from the most-collected variant with an image
-  const missingImageFamilyIds = [
-    ...relatedFamiliesRaw.filter((f) => !f.imageUrl).map((f) => f.id),
-    ...collectionSiblingsRaw.filter((f) => !f.imageUrl).map((f) => f.id),
-  ];
+  const missingImageFamilyIds = relatedFamiliesRaw.filter((f) => !f.imageUrl).map((f) => f.id);
   const bestVariantImages = await getBestVariantImagesForFamilies(missingImageFamilyIds);
   const relatedFamilies = relatedFamiliesRaw.map((f) => ({
-    ...f,
-    imageUrl: effectiveFamilyImage(f.imageUrl, f.id, bestVariantImages),
-  }));
-  const collectionSiblings = collectionSiblingsRaw.map((f) => ({
     ...f,
     imageUrl: effectiveFamilyImage(f.imageUrl, f.id, bestVariantImages),
   }));
@@ -508,8 +495,6 @@ async function renderFamilyPage(family: {
                   familyId={family.id}
                   currentModel={family.model}
                   currentDescription={family.description}
-                  currentImageUrl={family.imageUrl}
-                  currentCollection={collectionName}
                 />
               )}
             </div>
@@ -573,6 +558,7 @@ async function renderFamilyPage(family: {
                   origin={v.origin}
                   complications={v.complications as string[] | null}
                   description={v.description}
+                  variantName={(v as { variantName?: string | null }).variantName ?? null}
                   imageUrl={v.imageUrl}
                   isCommunitySubmitted={v.isCommunitySubmitted}
                   isFeatured={!!(featured && v.id === featured.id)}
@@ -691,49 +677,6 @@ async function renderFamilyPage(family: {
           </section>
         )}
 
-        {/* Collection Siblings */}
-        {collectionSiblings.length > 0 && collectionName && (
-          <section className="mb-12">
-            <p className="text-[11px] uppercase tracking-[3px] text-[rgba(26,24,20,0.3)] font-medium mb-1">
-              Also in the {collectionName} Collection
-            </p>
-            <p className="text-[13px] text-[rgba(26,24,20,0.4)] mb-4 font-serif italic">
-              Other models in the {family.brand} {collectionName} family
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {collectionSiblings.map((r) => (
-                <Link
-                  key={r.id}
-                  href={`/watch/${r.slug}`}
-                  className="bg-white rounded-[16px] border border-[rgba(138,122,90,0.1)] shadow-[0_2px_12px_rgba(26,24,20,0.03)] overflow-hidden hover:shadow-[0_4px_20px_rgba(26,24,20,0.08)] transition-shadow group"
-                >
-                  <div className="aspect-square bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center overflow-hidden">
-                    {r.imageUrl ? (
-                      <img
-                        src={r.imageUrl}
-                        alt={`${r.brand} ${r.model}`}
-                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <span className="text-[24px] font-bold text-white/10">
-                        {r.brand.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="text-[10px] uppercase tracking-[1.5px] text-[rgba(26,24,20,0.35)] mb-0.5">
-                      {r.brand}
-                    </p>
-                    <p className="text-[13px] font-semibold text-[#1a1814] truncate">
-                      {r.model}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Related Watches */}
         {relatedFamilies.length > 0 && (
           <section className="mb-12">
@@ -790,6 +733,7 @@ async function renderLegacyPage(watch: {
   brand: string;
   model: string;
   reference: string;
+  variantName?: string | null;
   sizeMm: number | null;
   movement: string | null;
   material: string | null;
@@ -900,8 +844,15 @@ async function renderLegacyPage(watch: {
               {watch.model}
             </h1>
             {watch.reference && (
-              <p className="text-[14px] font-mono text-[rgba(26,24,20,0.35)] mb-3">
-                {watch.reference}
+              <p className="flex items-baseline flex-wrap gap-x-3 gap-y-1 mb-3">
+                <span className="text-[18px] sm:text-[20px] font-mono font-semibold tracking-[0.5px] text-[#8a7a5a]">
+                  {watch.reference}
+                </span>
+                {watch.variantName ? (
+                  <span className="text-[18px] sm:text-[20px] font-serif italic text-[rgba(26,24,20,0.55)]">
+                    &ldquo;{watch.variantName as string}&rdquo;
+                  </span>
+                ) : null}
               </p>
             )}
 
@@ -930,6 +881,7 @@ async function renderLegacyPage(watch: {
                     brand: watch.brand,
                     model: watch.model,
                     reference: watch.reference,
+                    variantName: (watch.variantName as string | null | undefined) ?? null,
                     sizeMm: watch.sizeMm,
                     movement: watch.movement,
                     material: watch.material,
@@ -949,6 +901,13 @@ async function renderLegacyPage(watch: {
               </div>
             )}
 
+            {/* Description — right above specs */}
+            {watch.description && (
+              <p className="mb-5 text-[14px] leading-relaxed text-[rgba(26,24,20,0.55)] font-serif italic">
+                {watch.description}
+              </p>
+            )}
+
             {/* Specs grid */}
             {specs.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
@@ -963,13 +922,6 @@ async function renderLegacyPage(watch: {
                   </div>
                 ))}
               </div>
-            )}
-
-            {/* Description */}
-            {watch.description && (
-              <p className="mt-5 text-[14px] leading-relaxed text-[rgba(26,24,20,0.55)] font-serif italic">
-                {watch.description}
-              </p>
             )}
 
             {/* Community flag — subtle, at the bottom of the header */}

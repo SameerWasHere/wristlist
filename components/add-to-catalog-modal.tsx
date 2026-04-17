@@ -10,7 +10,6 @@ interface FuzzyMatch {
   slug: string;
   brand: string;
   model: string;
-  collection: string | null;
   imageUrl: string | null;
   variationCount: number;
 }
@@ -78,9 +77,17 @@ export function AddToCatalogModal({
   const [imageUrl, setImageUrl] = useState<string[]>([]);
   const [description, setDescription] = useState("");
 
-  // Step 4: Confirm
+  // Step 4: Confirm (reuses the same state as the step-3 inline check)
   const [dupCheck, setDupCheck] = useState<"checking" | "found" | "not_found" | null>(null);
   const [existingRefId, setExistingRefId] = useState<number | null>(null);
+  const [existingRef, setExistingRef] = useState<{
+    id: number;
+    slug: string;
+    brand: string;
+    model: string;
+    reference: string;
+    imageUrl: string | null;
+  } | null>(null);
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -123,6 +130,7 @@ export function AddToCatalogModal({
       setIsNewModel(false);
       setDupCheck(null);
       setExistingRefId(null);
+      setExistingRef(null);
       setError(null);
     }
   }, [open, initialBrand, initialModel]);
@@ -202,13 +210,7 @@ export function AddToCatalogModal({
     fetch(`/api/catalog?fuzzy=${encodeURIComponent(brand.trim())}`)
       .then((r) => r.json())
       .then((data) => {
-        const families: FuzzyMatch[] = (data.families ?? []).map(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (f: any) => ({
-            ...f,
-            collection: f.collection ?? null,
-          }),
-        );
+        const families: FuzzyMatch[] = data.families ?? [];
         // Only show families for this brand
         const brandFamilies = families.filter(
           (f) => f.brand.toLowerCase() === brand.trim().toLowerCase(),
@@ -251,24 +253,49 @@ export function AddToCatalogModal({
     goTo(3);
   }, [goTo]);
 
-  // Step 4: duplicate check
+  // Duplicate check — fires on step 3 (debounced while typing) and step 4
   useEffect(() => {
-    if (step !== 4 || !reference.trim() || !brand.trim()) return;
+    if (step !== 3 && step !== 4) return;
+    const ref = reference.trim();
+    const b = brand.trim();
+    if (!ref || !b) {
+      setDupCheck(null);
+      setExistingRefId(null);
+      setExistingRef(null);
+      return;
+    }
+    // Debounce a bit on step 3 while the user is typing; step 4 is a single
+    // confirm render, no debounce needed.
+    const delay = step === 3 ? 350 : 0;
     setDupCheck("checking");
-    setExistingRefId(null);
-    fetch(
-      `/api/catalog?ref=${encodeURIComponent(reference.trim())}&brand=${encodeURIComponent(brand.trim())}`,
-    )
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.exists && data.watchReferenceId) {
-          setDupCheck("found");
-          setExistingRefId(data.watchReferenceId);
-        } else {
+    const timer = setTimeout(() => {
+      fetch(
+        `/api/catalog?ref=${encodeURIComponent(ref)}&brand=${encodeURIComponent(b)}`,
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.exists && data.watchReferenceId) {
+            setDupCheck("found");
+            setExistingRefId(data.watchReferenceId);
+            setExistingRef({
+              id: data.watchReferenceId,
+              slug: data.slug,
+              brand: data.brand,
+              model: data.model,
+              reference: data.reference,
+              imageUrl: data.imageUrl ?? null,
+            });
+          } else {
+            setDupCheck("not_found");
+            setExistingRef(null);
+          }
+        })
+        .catch(() => {
           setDupCheck("not_found");
-        }
-      })
-      .catch(() => setDupCheck("not_found"));
+          setExistingRef(null);
+        });
+    }, delay);
+    return () => clearTimeout(timer);
   }, [step, reference, brand]);
 
   // Submit: create the watch
@@ -375,16 +402,6 @@ export function AddToCatalogModal({
 
   const labelClass =
     "text-[11px] uppercase tracking-[1.5px] font-medium text-[rgba(26,24,20,0.4)] mb-2 block";
-
-  // Group families by collection
-  const groupedByCollection = familyMatches.reduce<
-    Record<string, FuzzyMatch[]>
-  >((acc, f) => {
-    const key = f.collection || "Other";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(f);
-    return acc;
-  }, {});
 
   const stepLabels = ["Brand", "Model", "Details", "Confirm"];
 
@@ -643,78 +660,57 @@ export function AddToCatalogModal({
                   </div>
                 )}
 
-                {/* Existing models grouped by collection */}
+                {/* Existing models — flat list, no collection grouping */}
                 {!familyLoading && familyMatches.length > 0 && (
-                  <div className="mb-6 space-y-4">
-                    {Object.entries(groupedByCollection).map(
-                      ([collectionName, families]) => (
-                        <div key={collectionName}>
-                          {/* Collection header */}
-                          {collectionName !== "Other" && (
-                            <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[#8a7a5a] mb-2 px-1">
-                              {collectionName} Collection
-                            </p>
+                  <div className="mb-6 bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] overflow-hidden">
+                    {familyMatches.map((match, i) => (
+                      <button
+                        key={match.id}
+                        type="button"
+                        onClick={() => selectExistingModel(match)}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[rgba(26,24,20,0.02)] transition-colors text-left ${
+                          i > 0
+                            ? "border-t border-[rgba(26,24,20,0.06)]"
+                            : ""
+                        }`}
+                      >
+                        <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {match.imageUrl ? (
+                            <img
+                              src={match.imageUrl}
+                              alt=""
+                              className="w-full h-full object-contain p-1.5"
+                            />
+                          ) : (
+                            <span className="text-white/30 text-[14px] font-bold">
+                              {match.brand.charAt(0)}
+                            </span>
                           )}
-                          {collectionName === "Other" &&
-                            Object.keys(groupedByCollection).length > 1 && (
-                              <p className="text-[10px] uppercase tracking-[2px] font-semibold text-[rgba(26,24,20,0.3)] mb-2 px-1">
-                                Other Models
-                              </p>
-                            )}
-
-                          <div className="bg-white rounded-[16px] border border-[rgba(26,24,20,0.06)] overflow-hidden">
-                            {families.map((match, i) => (
-                              <button
-                                key={match.id}
-                                type="button"
-                                onClick={() => selectExistingModel(match)}
-                                className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[rgba(26,24,20,0.02)] transition-colors text-left ${
-                                  i > 0
-                                    ? "border-t border-[rgba(26,24,20,0.06)]"
-                                    : ""
-                                }`}
-                              >
-                                <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#0a0a0a] to-[#1a1a20] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                  {match.imageUrl ? (
-                                    <img
-                                      src={match.imageUrl}
-                                      alt=""
-                                      className="w-full h-full object-contain p-1.5"
-                                    />
-                                  ) : (
-                                    <span className="text-white/30 text-[14px] font-bold">
-                                      {match.brand.charAt(0)}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[15px] font-semibold text-[#1a1814] truncate">
-                                    {match.model}
-                                  </p>
-                                  <p className="text-[11px] text-[rgba(26,24,20,0.35)]">
-                                    {match.variationCount}{" "}
-                                    {match.variationCount === 1
-                                      ? "variation"
-                                      : "variations"}
-                                  </p>
-                                </div>
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-[rgba(26,24,20,0.15)] flex-shrink-0"
-                                >
-                                  <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                              </button>
-                            ))}
-                          </div>
                         </div>
-                      ),
-                    )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[15px] font-semibold text-[#1a1814] truncate">
+                            {match.model}
+                          </p>
+                          <p className="text-[11px] text-[rgba(26,24,20,0.35)]">
+                            {match.variationCount}{" "}
+                            {match.variationCount === 1
+                              ? "variation"
+                              : "variations"}
+                          </p>
+                        </div>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="text-[rgba(26,24,20,0.15)] flex-shrink-0"
+                        >
+                          <polyline points="9 18 15 12 9 6" />
+                        </svg>
+                      </button>
+                    ))}
                   </div>
                 )}
 
@@ -797,6 +793,65 @@ export function AddToCatalogModal({
                     className={inputClass}
                     autoFocus
                   />
+
+                  {/* Live duplicate check feedback */}
+                  {reference.trim().length > 0 && dupCheck === "checking" && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-3 h-3 border-2 border-[rgba(26,24,20,0.1)] border-t-[#8a7a5a] rounded-full animate-spin" />
+                      <span className="text-[11px] text-[rgba(26,24,20,0.4)]">
+                        Checking the catalog...
+                      </span>
+                    </div>
+                  )}
+                  {reference.trim().length > 0 && dupCheck === "not_found" && (
+                    <p className="mt-2 text-[11px] text-[#6b8f4e] font-medium">
+                      ✓ This reference isn&apos;t in the catalog yet
+                    </p>
+                  )}
+                  {dupCheck === "found" && existingRef && (
+                    <div className="mt-3 p-3 rounded-[12px] bg-[rgba(220,38,38,0.05)] border border-[rgba(220,38,38,0.2)]">
+                      <div className="flex items-start gap-2 mb-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold text-[#1a1814]">
+                            Already in the catalog
+                          </p>
+                          <p className="text-[11.5px] text-[rgba(26,24,20,0.55)] leading-snug mt-0.5">
+                            A reference matching <span className="font-mono font-semibold">{existingRef.reference}</span> already exists for {existingRef.brand}.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pl-6">
+                        <div className="w-8 h-8 rounded-[8px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {existingRef.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={existingRef.imageUrl} alt="" className="w-full h-full object-contain p-0.5" />
+                          ) : (
+                            <span className="text-white/25 text-[9px] font-mono font-bold">
+                              {existingRef.reference.slice(-3)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12px] font-semibold text-[#1a1814] truncate">
+                            {existingRef.brand} {existingRef.model}
+                          </p>
+                        </div>
+                        <a
+                          href={`/watch/${existingRef.slug}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="text-[11px] font-semibold text-[#8a7a5a] hover:underline whitespace-nowrap"
+                        >
+                          View →
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Identity: Size + Water Resistance */}
@@ -945,7 +1000,7 @@ export function AddToCatalogModal({
                   />
                 </div>
 
-                {/* Continue to confirm */}
+                {/* Continue to confirm — disabled if a duplicate was detected */}
                 <button
                   type="button"
                   onClick={() => {
@@ -953,12 +1008,28 @@ export function AddToCatalogModal({
                       setError("Reference number is required.");
                       return;
                     }
+                    if (dupCheck === "found") {
+                      setError("This reference already exists in the catalog. Use the existing entry instead.");
+                      return;
+                    }
                     goTo(4);
                   }}
-                  className="w-full py-3.5 text-[15px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:bg-[#2a2824] active:scale-[0.98] transition-all duration-200"
+                  disabled={dupCheck === "found"}
+                  className="w-full py-3.5 text-[15px] font-semibold bg-[#1a1814] text-[#f6f4ef] rounded-full hover:bg-[#2a2824] active:scale-[0.98] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Review &amp; Confirm
+                  {dupCheck === "found" ? "Reference already exists" : "Review & Confirm"}
                 </button>
+
+                {/* Shortcut: jump straight to adding the existing one */}
+                {dupCheck === "found" && existingRef && (
+                  <button
+                    type="button"
+                    onClick={handleAddExisting}
+                    className="w-full mt-3 py-3 text-[14px] font-semibold bg-[#8a7a5a] text-white rounded-full hover:bg-[#7a6a4a] active:scale-[0.98] transition-all duration-200"
+                  >
+                    Add the existing {existingRef.reference} instead
+                  </button>
+                )}
 
                 {error && (
                   <div className="mt-4 px-4 py-3 bg-red-50 border border-red-100 rounded-[12px]">

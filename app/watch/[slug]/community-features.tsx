@@ -19,14 +19,10 @@ export function FamilyEditButton({
   familyId,
   currentModel,
   currentDescription,
-  currentImageUrl,
-  currentCollection,
 }: {
   familyId: number;
   currentModel: string;
   currentDescription: string | null;
-  currentImageUrl: string | null;
-  currentCollection: string | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -44,8 +40,6 @@ export function FamilyEditButton({
         familyId={familyId}
         currentModel={currentModel}
         currentDescription={currentDescription}
-        currentImageUrl={currentImageUrl}
-        currentCollection={currentCollection}
       />
     </>
   );
@@ -61,6 +55,7 @@ export function ReferenceEditButton({
     brand?: string | null;
     model?: string | null;
     reference: string;
+    variantName?: string | null;
     sizeMm: number | null;
     movement: string | null;
     material: string | null;

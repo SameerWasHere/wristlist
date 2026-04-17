@@ -24,6 +24,7 @@ interface VariationRowProps {
   origin: string | null;
   complications: string[] | null;
   description?: string | null;
+  variantName?: string | null;
   imageUrl: string | null;
   isCommunitySubmitted: boolean;
   isFeatured: boolean;
@@ -35,7 +36,7 @@ interface VariationRowProps {
 export function VariationRow({
   id, slug, brand, model, reference, sizeMm, movement, material, color, category,
   braceletType, bezelType, shape, waterResistanceM, crystal, caseBack, origin,
-  description, imageUrl, isCommunitySubmitted, isFeatured, collectorCount,
+  description, variantName, imageUrl, isCommunitySubmitted, isFeatured, collectorCount,
   isSignedIn, isFirst,
 }: VariationRowProps) {
   const quickSpecs = [
@@ -87,6 +88,11 @@ export function VariationRow({
             <p className="text-[13px] font-semibold text-[#1a1814] group-hover:text-[#8a7a5a] transition-colors">
               {reference || model}
             </p>
+            {variantName && (
+              <span className="text-[12px] font-serif italic text-[#8a7a5a]">
+                &ldquo;{variantName}&rdquo;
+              </span>
+            )}
             {isFeatured && (
               <span className="px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#8a7a5a] bg-[rgba(138,122,90,0.1)] rounded-full">
                 Most popular
@@ -129,7 +135,10 @@ export function VariationRow({
             <ReferenceEditButton
               referenceId={id}
               current={{
+                brand,
+                model,
                 reference,
+                variantName: variantName ?? null,
                 sizeMm,
                 movement,
                 material,

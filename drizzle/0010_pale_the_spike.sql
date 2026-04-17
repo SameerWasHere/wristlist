@@ -1,0 +1,1 @@
+ALTER TABLE "watch_references" ADD COLUMN "variant_name" text;

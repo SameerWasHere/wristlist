@@ -71,6 +71,13 @@
       "when": 1776407302418,
       "tag": "0009_mysterious_layla_miller",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776408444882,
+      "tag": "0010_pale_the_spike",
+      "breakpoints": true
     }
   ]
 }

@@ -82,6 +82,7 @@ export async function PATCH(
     "brand",
     "model",
     "reference",
+    "variantName",
     "sizeMm",
     "movement",
     "material",
