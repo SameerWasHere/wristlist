@@ -178,3 +178,37 @@ export const follows = pgTable(
     ),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// deletion_flags — users can flag a watch reference as "should be deleted"
+// with a reason (e.g. duplicate, wrong model, spam). Reviewed in bulk later.
+// ---------------------------------------------------------------------------
+export const deletionFlags = pgTable(
+  "deletion_flags",
+  {
+    id: serial("id").primaryKey(),
+    watchReferenceId: integer("watch_reference_id")
+      .notNull()
+      .references(() => watchReferences.id, { onDelete: "cascade" }),
+    flaggedBy: integer("flagged_by")
+      .notNull()
+      .references(() => users.id),
+    reason: text("reason").notNull(),
+    status: text("status", {
+      enum: ["pending", "reviewed", "actioned", "dismissed"],
+    })
+      .default("pending")
+      .notNull(),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedBy: integer("reviewed_by").references(() => users.id),
+    reviewNote: text("review_note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // Prevent a single user from flagging the same watch twice
+    uniqueIndex("deletion_flags_user_watch_idx").on(
+      table.flaggedBy,
+      table.watchReferenceId,
+    ),
+  ],
+);

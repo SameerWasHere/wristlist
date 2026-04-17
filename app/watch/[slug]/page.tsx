@@ -11,6 +11,7 @@ import { AddVariationButton } from "./add-variation-button";
 import { VariationRow } from "./variation-row";
 import { AddToCollectionButton } from "./add-to-collection-button";
 import { CatalogImageUpload } from "@/components/catalog-image-upload";
+import { FlagDeletionButton } from "./flag-deletion-button";
 
 export const dynamic = "force-dynamic";
 
@@ -969,6 +970,18 @@ async function renderLegacyPage(watch: {
               <p className="mt-5 text-[14px] leading-relaxed text-[rgba(26,24,20,0.55)] font-serif italic">
                 {watch.description}
               </p>
+            )}
+
+            {/* Community flag — subtle, at the bottom of the header */}
+            {isSignedIn && (
+              <div className="mt-6 pt-4 border-t border-[rgba(26,24,20,0.06)]">
+                <FlagDeletionButton
+                  referenceId={watch.id}
+                  brand={watch.brand}
+                  model={watch.model}
+                  reference={watch.reference}
+                />
+              </div>
             )}
           </div>
         </div>

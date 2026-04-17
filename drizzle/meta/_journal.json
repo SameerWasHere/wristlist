@@ -64,6 +64,13 @@
       "when": 1775185661782,
       "tag": "0008_left_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776407302418,
+      "tag": "0009_mysterious_layla_miller",
+      "breakpoints": true
     }
   ]
 }
