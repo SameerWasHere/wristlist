@@ -390,7 +390,7 @@ export function AddToCatalogModal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999]"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-6"
       style={{ pointerEvents: animating || open ? "auto" : "none" }}
     >
       {/* Backdrop */}
@@ -403,15 +403,16 @@ export function AddToCatalogModal({
         onClick={onClose}
       />
 
-      {/* Modal sheet */}
+      {/* Modal sheet — bottom-sheet on mobile, centered dialog on desktop */}
       <div
-        className="absolute bottom-0 left-0 right-0 bg-[#f6f4ef] rounded-t-[24px] max-h-[92vh] overflow-y-auto transition-transform duration-300 ease-out"
+        className="relative w-full sm:max-w-[640px] bg-[#f6f4ef] rounded-t-[24px] sm:rounded-[24px] max-h-[92vh] sm:max-h-[85vh] overflow-y-auto transition-all duration-300 ease-out shadow-[0_-8px_40px_rgba(26,24,20,0.15)] sm:shadow-[0_20px_60px_rgba(26,24,20,0.25)]"
         style={{
           transform: visible ? "translateY(0)" : "translateY(100%)",
+          opacity: visible ? 1 : 0,
         }}
       >
-        {/* Drag indicator */}
-        <div className="flex justify-center pt-3 pb-1">
+        {/* Drag indicator (mobile only) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-[rgba(26,24,20,0.12)]" />
         </div>
 
