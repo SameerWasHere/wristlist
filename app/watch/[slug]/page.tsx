@@ -10,6 +10,7 @@ import { FamilyEditButton, ReferenceEditButton, HistoryButton } from "./communit
 import { AddVariationButton } from "./add-variation-button";
 import { VariationRow } from "./variation-row";
 import { AddToCollectionButton } from "./add-to-collection-button";
+import { CatalogImageUpload } from "@/components/catalog-image-upload";
 
 export const dynamic = "force-dynamic";
 
@@ -458,7 +459,7 @@ async function renderFamilyPage(family: {
         {/* Watch Hero */}
         <div className="flex flex-col sm:flex-row gap-8 mb-12">
           {/* Image */}
-          <div className="w-full sm:w-[320px] h-[320px] rounded-[20px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="relative w-full sm:w-[320px] h-[320px] rounded-[20px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
             {heroImage ? (
               <img
                 src={heroImage}
@@ -471,6 +472,14 @@ async function renderFamilyPage(family: {
                   {family.brand.charAt(0)}
                 </span>
               </div>
+            )}
+            {isSignedIn && featured && (
+              <CatalogImageUpload
+                referenceId={featured.id}
+                currentImageUrl={heroImage}
+                brand={family.brand}
+                model={family.model}
+              />
             )}
           </div>
 
@@ -826,7 +835,7 @@ async function renderLegacyPage(watch: {
         {/* Watch Header */}
         <div className="flex flex-col sm:flex-row gap-8 mb-12">
           {/* Image */}
-          <div className="w-full sm:w-[280px] h-[280px] rounded-[20px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="relative w-full sm:w-[280px] h-[280px] rounded-[20px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center flex-shrink-0 overflow-hidden">
             {watch.imageUrl ? (
               <img
                 src={watch.imageUrl}
@@ -839,6 +848,14 @@ async function renderLegacyPage(watch: {
                   {watch.brand.charAt(0)}
                 </span>
               </div>
+            )}
+            {isSignedIn && (
+              <CatalogImageUpload
+                referenceId={watch.id}
+                currentImageUrl={watch.imageUrl}
+                brand={watch.brand}
+                model={watch.model}
+              />
             )}
           </div>
 

@@ -66,20 +66,38 @@ export function CatalogImageUpload({ referenceId, currentImageUrl, brand, model 
         <div className="absolute inset-0 bg-black/50 rounded-[12px] flex items-center justify-center z-10">
           <div className="w-4 h-4 border-2 border-[#8a7a5a] border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : (
+      ) : currentImageUrl ? (
+        // With an image — hover-only overlay, covers the whole thumb
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             setShowGuidance(true);
           }}
-          className="absolute inset-0 rounded-[12px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40 z-10 cursor-pointer"
-          title={currentImageUrl ? "Update image" : "Add image"}
+          className="absolute inset-0 rounded-[inherit] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40 z-10 cursor-pointer"
+          title="Update image"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
             <circle cx="12" cy="13" r="4" />
           </svg>
+        </button>
+      ) : (
+        // No image — always-visible corner badge that invites upload
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowGuidance(true);
+          }}
+          className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#8a7a5a] text-white hover:bg-[#7a6a4a] transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)] z-10 cursor-pointer"
+          title="Add image"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          <span className="text-[10px] font-semibold uppercase tracking-[1px]">Add</span>
         </button>
       )}
 
