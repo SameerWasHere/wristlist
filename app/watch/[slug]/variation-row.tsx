@@ -24,6 +24,7 @@ interface VariationRowProps {
   caseBack: string | null;
   origin: string | null;
   complications: string[] | null;
+  description?: string | null;
   imageUrl: string | null;
   isCommunitySubmitted: boolean;
   isFeatured: boolean;
@@ -35,7 +36,7 @@ interface VariationRowProps {
 export function VariationRow({
   id, slug, brand, model, reference, sizeMm, movement, material, color, category,
   braceletType, bezelType, shape, waterResistanceM, crystal, caseBack, origin,
-  complications, imageUrl, isCommunitySubmitted, isFeatured, collectorCount,
+  complications, description, imageUrl, isCommunitySubmitted, isFeatured, collectorCount,
   isSignedIn, isFirst,
 }: VariationRowProps) {
   const [expanded, setExpanded] = useState(false);
@@ -119,6 +120,11 @@ export function VariationRow({
           <p className="text-[10px] text-[rgba(26,24,20,0.3)] leading-snug line-clamp-2 sm:line-clamp-1 mt-0.5">
             {[movement, origin, crystal].filter(Boolean).join(" · ")}
           </p>
+          {description && (
+            <p className="text-[12px] font-serif italic text-[rgba(26,24,20,0.55)] leading-snug mt-1.5 line-clamp-2">
+              {description}
+            </p>
+          )}
         </Link>
 
         {/* Count + expand toggle (separate button, sibling to the Links) */}

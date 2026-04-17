@@ -562,6 +562,7 @@ async function renderFamilyPage(family: {
                   caseBack={v.caseBack}
                   origin={v.origin}
                   complications={v.complications as string[] | null}
+                  description={v.description}
                   imageUrl={v.imageUrl}
                   isCommunitySubmitted={v.isCommunitySubmitted}
                   isFeatured={!!(featured && v.id === featured.id)}
