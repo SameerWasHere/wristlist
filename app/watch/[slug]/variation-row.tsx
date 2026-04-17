@@ -72,7 +72,7 @@ export function VariationRow({
               <img src={imageUrl} alt={`${brand} ${model}`} className="w-full h-full object-contain p-1" />
             ) : (
               <span className="text-white/20 text-[13px] font-bold font-mono">
-                {reference?.slice(0, 3) || brand.charAt(0)}
+                {reference ? reference.slice(-3) : brand.charAt(0)}
               </span>
             )}
           </Link>
