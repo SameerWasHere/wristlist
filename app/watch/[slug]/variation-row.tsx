@@ -67,14 +67,18 @@ export function VariationRow({
         isFeatured ? "bg-[rgba(138,122,90,0.04)]" : ""
       }`}
     >
-      {/* Compact row — always visible */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[rgba(26,24,20,0.015)] text-left"
-      >
-        {/* Thumb */}
+      {/* Compact row — always visible. Row is a flex container with a Link
+          covering thumb+text (navigates to the variant page) and separate
+          controls on the right (upload, expand toggle) rendered as siblings
+          so we don't end up with nested interactive elements. */}
+      <div className="flex items-center gap-4 px-5 py-4 hover:bg-[rgba(26,24,20,0.015)] transition-colors">
+        {/* Thumb (includes upload overlay as sibling, not nested inside link) */}
         <div className="relative flex-shrink-0">
-          <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center overflow-hidden">
+          <Link
+            href={`/watch/${slug}`}
+            className="block w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#1a1814] to-[#2a2824] flex items-center justify-center overflow-hidden"
+            aria-label={`Open ${brand} ${model} ${reference}`}
+          >
             {imageUrl ? (
               <img src={imageUrl} alt={`${brand} ${model}`} className="w-full h-full object-contain p-1" />
             ) : (
@@ -82,16 +86,16 @@ export function VariationRow({
                 {reference?.slice(0, 3) || brand.charAt(0)}
               </span>
             )}
-          </div>
+          </Link>
           {isSignedIn && (
             <CatalogImageUpload referenceId={id} currentImageUrl={imageUrl} brand={brand} model={model} />
           )}
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
+        {/* Info — Link too, so the text area navigates */}
+        <Link href={`/watch/${slug}`} className="flex-1 min-w-0 group no-underline text-inherit">
           <div className="flex items-center gap-2">
-            <p className="text-[14px] font-semibold text-[#1a1814] truncate">
+            <p className="text-[14px] font-semibold text-[#1a1814] truncate group-hover:text-[#8a7a5a] transition-colors">
               {reference || model}
             </p>
             {isFeatured && (
@@ -115,23 +119,30 @@ export function VariationRow({
           <p className="text-[10px] text-[rgba(26,24,20,0.3)] leading-snug line-clamp-2 sm:line-clamp-1 mt-0.5">
             {[movement, origin, crystal].filter(Boolean).join(" · ")}
           </p>
-        </div>
+        </Link>
 
-        {/* Count + chevron */}
+        {/* Count + expand toggle (separate button, sibling to the Links) */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {collectorCount > 0 && (
             <span className="text-[12px] text-[rgba(26,24,20,0.3)] font-medium">
               {collectorCount}
             </span>
           )}
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            className={`text-[rgba(26,24,20,0.2)] transition-transform ${expanded ? "rotate-180" : ""}`}
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            aria-label={expanded ? "Hide details" : "Show details"}
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[rgba(26,24,20,0.06)] transition-colors"
           >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-[rgba(26,24,20,0.35)] transition-transform ${expanded ? "rotate-180" : ""}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
         </div>
-      </button>
+      </div>
 
       {/* Expanded detail */}
       {expanded && (

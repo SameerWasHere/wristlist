@@ -479,6 +479,7 @@ async function renderFamilyPage(family: {
                 currentImageUrl={heroImage}
                 brand={family.brand}
                 model={family.model}
+                size="hero"
               />
             )}
           </div>
@@ -855,6 +856,7 @@ async function renderLegacyPage(watch: {
                 currentImageUrl={watch.imageUrl}
                 brand={watch.brand}
                 model={watch.model}
+                size="hero"
               />
             )}
           </div>

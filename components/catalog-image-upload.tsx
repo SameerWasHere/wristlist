@@ -8,9 +8,16 @@ interface CatalogImageUploadProps {
   currentImageUrl?: string | null;
   brand: string;
   model: string;
+  /**
+   * `compact` (default): fits small 40–50px thumbs. Tiny camera icon in the
+   * corner with no text, hover-only overlay when an image exists.
+   * `hero`: fits large hero images (200px+). Visible gold "ADD" pill when
+   * there's no image.
+   */
+  size?: "compact" | "hero";
 }
 
-export function CatalogImageUpload({ referenceId, currentImageUrl, brand, model }: CatalogImageUploadProps) {
+export function CatalogImageUpload({ referenceId, currentImageUrl, brand, model, size = "compact" }: CatalogImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showGuidance, setShowGuidance] = useState(false);
@@ -71,22 +78,24 @@ export function CatalogImageUpload({ referenceId, currentImageUrl, brand, model 
         <button
           type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             setShowGuidance(true);
           }}
           className="absolute inset-0 rounded-[inherit] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/40 z-10 cursor-pointer"
           title="Update image"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width={size === "hero" ? 18 : 14} height={size === "hero" ? 18 : 14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
             <circle cx="12" cy="13" r="4" />
           </svg>
         </button>
-      ) : (
-        // No image — always-visible corner badge that invites upload
+      ) : size === "hero" ? (
+        // Hero with no image — prominent gold pill with "ADD" label
         <button
           type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             setShowGuidance(true);
           }}
@@ -98,6 +107,23 @@ export function CatalogImageUpload({ referenceId, currentImageUrl, brand, model 
             <circle cx="12" cy="13" r="4" />
           </svg>
           <span className="text-[10px] font-semibold uppercase tracking-[1px]">Add</span>
+        </button>
+      ) : (
+        // Compact thumb with no image — tiny camera icon, just a small circle
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowGuidance(true);
+          }}
+          className="absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-[#8a7a5a] text-white hover:bg-[#7a6a4a] transition-colors shadow-[0_1px_4px_rgba(0,0,0,0.3)] z-10 cursor-pointer"
+          title="Add image"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
         </button>
       )}
 
