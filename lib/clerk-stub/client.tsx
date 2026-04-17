@@ -13,6 +13,12 @@
 
 import type { ReactNode, MouseEventHandler } from "react";
 
+// When NEXT_PUBLIC_DEV_USER_USERNAME is set, the client acts as if that user
+// is signed in. The actual user record is resolved server-side by the server
+// stub, which looks up the real Clerk ID by username in the DB.
+const DEV_USER_USERNAME = process.env.NEXT_PUBLIC_DEV_USER_USERNAME;
+const IS_DEV_SIGNED_IN = !!DEV_USER_USERNAME;
+
 // --- Context providers --------------------------------------------------
 
 export function ClerkProvider({ children }: { children: ReactNode }) {
@@ -23,18 +29,28 @@ export function ClerkProvider({ children }: { children: ReactNode }) {
 
 export function useUser() {
   return {
-    isSignedIn: false,
+    isSignedIn: IS_DEV_SIGNED_IN,
     isLoaded: true,
-    user: null,
+    user: IS_DEV_SIGNED_IN
+      ? {
+          id: `preview-${DEV_USER_USERNAME}`,
+          username: DEV_USER_USERNAME ?? null,
+          firstName: null,
+          lastName: null,
+          fullName: DEV_USER_USERNAME ?? null,
+          primaryEmailAddress: null,
+          imageUrl: "",
+        }
+      : null,
   };
 }
 
 export function useAuth() {
   return {
-    isSignedIn: false,
+    isSignedIn: IS_DEV_SIGNED_IN,
     isLoaded: true,
-    userId: null,
-    sessionId: null,
+    userId: IS_DEV_SIGNED_IN ? `preview-${DEV_USER_USERNAME}` : null,
+    sessionId: IS_DEV_SIGNED_IN ? "preview-session" : null,
     getToken: async () => null,
     signOut: async () => {},
   };
@@ -105,8 +121,16 @@ export function SignUpButton({ children }: SignInButtonProps) {
 }
 
 export function UserButton() {
-  // User is always signed out in preview, so render nothing (nav shows Sign In instead)
-  return null;
+  if (!IS_DEV_SIGNED_IN) return null;
+  const initial = (DEV_USER_USERNAME ?? "?").charAt(0).toUpperCase();
+  return (
+    <div
+      title={`Previewing as @${DEV_USER_USERNAME}`}
+      className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8a7a5a] to-[#6b5b3a] flex items-center justify-center text-white text-[13px] font-bold cursor-default select-none"
+    >
+      {initial}
+    </div>
+  );
 }
 
 // --- Full-page components ----------------------------------------------
